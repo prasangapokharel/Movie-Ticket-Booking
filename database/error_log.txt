@@ -1,0 +1,5 @@
+[2025-03-06 08:54:58] Database Error: SQLSTATE[HY000] [2002] No connection could be made because the target machine actively refused it
+[2025-03-08 06:02:18] Database Error: SQLSTATE[HY000] [2002] No connection could be made because the target machine actively refused it
+[2025-03-08 06:11:02] Database Error: SQLSTATE[HY000] [2002] No connection could be made because the target machine actively refused it
+[2025-03-09 07:53:11] Database Error: SQLSTATE[HY000] [2002] No connection could be made because the target machine actively refused it
+[2025-03-21 15:34:42] Database Error: SQLSTATE[HY000] [1049] Unknown database 'movie_booking'
