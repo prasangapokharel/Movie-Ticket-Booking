@@ -1,0 +1,4 @@
+RewriteEngine On
+
+# Rewrite rule to handle movie detail page with title in URL
+RewriteRule ^movie-booking-system/templates/movie_detail.php/([^/]+)/?$ movie-booking-system/templates/movie_detail.php?title=$1 [L,QSA]
