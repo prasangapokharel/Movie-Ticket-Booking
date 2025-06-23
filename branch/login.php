@@ -8,15 +8,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = trim($_POST['username']);
     $password = trim($_POST['password']);
     
-    // Check for super admin
-    if ($username === 'admin' && $password === '123') {
-        $_SESSION['admin_id'] = 1;
-        $_SESSION['admin_type'] = 'super';
-        header("Location: dashboard.php");
-        exit();
-    }
-    
-    // Check for branch admin
     try {
         $stmt = $conn->prepare("SELECT * FROM branches WHERE username = ? AND status = 'active'");
         $stmt->execute([$username]);
@@ -24,15 +15,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         if ($branch && password_verify($password, $branch['password_hash'])) {
             $_SESSION['branch_id'] = $branch['branch_id'];
-            $_SESSION['admin_type'] = 'branch';
-            header("Location: ../branch/dashboard.php");
+            $_SESSION['branch_name'] = $branch['branch_name'];
+            header("Location: dashboard.php");
             exit();
+        } else {
+            $error_message = "Invalid username or password!";
         }
     } catch (PDOException $e) {
         $error_message = "Database error occurred.";
     }
-    
-    $error_message = "Invalid username or password!";
 }
 ?>
 
@@ -41,7 +32,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - Movie Booking System</title>
+    <title>Branch Login - Movie Booking System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -52,13 +43,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <div class="max-w-md w-full space-y-8">
         <div>
             <div class="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-white">
-                <i class="fas fa-film text-black text-xl"></i>
+                <i class="fas fa-building text-black text-xl"></i>
             </div>
             <h2 class="mt-6 text-center text-3xl font-extrabold text-white">
-                Admin Login
+                Branch Login
             </h2>
             <p class="mt-2 text-center text-sm text-gray-400">
-                Enter your credentials to access the system
+                Enter your branch credentials to access the system
             </p>
         </div>
         
@@ -75,7 +66,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <label for="username" class="sr-only">Username</label>
                     <input id="username" name="username" type="text" required 
                            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-gray-900 rounded-t-md focus:outline-none focus:ring-white focus:border-white focus:z-10 sm:text-sm" 
-                           placeholder="Username">
+                           placeholder="Branch Username">
                 </div>
                 <div>
                     <label for="password" class="sr-only">Password</label>
@@ -91,15 +82,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <span class="absolute left-0 inset-y-0 flex items-center pl-3">
                         <i class="fas fa-lock text-black group-hover:text-gray-700"></i>
                     </span>
-                    Sign in
+                    Sign in to Branch
                 </button>
             </div>
             
             <div class="text-center">
-                <div class="text-sm text-gray-400">
-                    <p>Super Admin: admin / 123</p>
-                    <p>Branch Admin: Use branch credentials</p>
-                </div>
+                <a href="../admin/login.php" class="text-white hover:text-gray-300 text-sm">
+                    <i class="fas fa-arrow-left mr-1"></i>Back to Admin Login
+                </a>
             </div>
         </form>
     </div>

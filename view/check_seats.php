@@ -4,51 +4,45 @@ session_start();
 
 header('Content-Type: application/json');
 
-if (!isset($_GET['show_id'])) {
-    echo json_encode(['error' => 'Show ID is required']);
+$show_id = $_GET['show_id'] ?? null;
+
+if (!$show_id) {
+    echo json_encode(['error' => 'Show ID required']);
     exit;
 }
 
-$show_id = $_GET['show_id'];
-
 try {
-    // Get all seats for this show
-    $stmt = $conn->prepare("
-        SELECT seat_number, status
-        FROM seats
-        WHERE show_id = :show_id
+    // Clean up expired temporary selections
+    $cleanup = $conn->prepare("DELETE FROM temp_seat_selections WHERE expires_at < NOW()");
+    $cleanup->execute();
+    
+    // Get all seat statuses for this show
+    $seats = [];
+    
+    // Get booked/reserved seats
+    $booked_query = $conn->prepare("
+        SELECT seat_number, 'booked' as status 
+        FROM seats 
+        WHERE show_id = ? AND status IN ('booked', 'reserved')
     ");
-    $stmt->bindParam(':show_id', $show_id);
-    $stmt->execute();
-    $bookedSeats = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $booked_query->execute([$show_id]);
+    $booked_seats = $booked_query->fetchAll(PDO::FETCH_ASSOC);
     
-    // Get temporary selected seats
-    $temp_stmt = $conn->prepare("
-        SELECT seat_number, user_id, 'temp_selected' as status
-        FROM temp_seat_selections
-        WHERE show_id = :show_id
-        AND timestamp > DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+    // Get temporarily selected seats
+    $temp_query = $conn->prepare("
+        SELECT seat_number, 'temp_selected' as status 
+        FROM temp_seat_selections 
+        WHERE show_id = ? AND expires_at > NOW()
     ");
-    $temp_stmt->bindParam(':show_id', $show_id);
-    $temp_stmt->execute();
-    $tempSeats = $temp_stmt->fetchAll(PDO::FETCH_ASSOC);
+    $temp_query->execute([$show_id]);
+    $temp_seats = $temp_query->fetchAll(PDO::FETCH_ASSOC);
     
-    // Combine both results
-    $allSeats = array_merge($bookedSeats, $tempSeats);
+    // Combine results
+    $all_seats = array_merge($booked_seats, $temp_seats);
     
-    // Format the response
-    $response = [];
-    foreach ($allSeats as $seat) {
-        $response[] = [
-            'seat_number' => $seat['seat_number'],
-            'status' => $seat['status']
-        ];
-    }
-    
-    echo json_encode($response);
+    echo json_encode($all_seats);
     
 } catch (PDOException $e) {
     echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
 }
 ?>
-

@@ -1,7 +1,6 @@
 <?php
 session_start();
 include '../database/config.php';
-include '../includes/loader.php';
 
 // Debug mode - set to false in production
 $debug = false;
@@ -22,14 +21,19 @@ class MovieService {
         return $this->debugInfo;
     }
     
-    // Synchronous function to fetch locations
+    // Fetch locations from branches
     public function fetchLocations() {
         try {
-            $stmt = $this->conn->query("SELECT DISTINCT location FROM theaters ORDER BY location");
+            $stmt = $this->conn->query("
+                SELECT DISTINCT b.location 
+                FROM branches b 
+                WHERE b.status = 'active' 
+                ORDER BY b.location
+            ");
             $locations = $stmt->fetchAll(PDO::FETCH_COLUMN);
             
             if ($this->debug && empty($locations)) {
-                $this->debugInfo['locations_error'] = "No theater locations found in database";
+                $this->debugInfo['locations_error'] = "No branch locations found in database";
             }
             return $locations;
         } catch (PDOException $e) {
@@ -40,23 +44,26 @@ class MovieService {
         }
     }
     
-    // Concurrent-friendly function to fetch movies
+    // Fetch movies by location (branch location)
     public function fetchMoviesByLocation($location) {
         $currentDateTime = date('Y-m-d H:i:s');
-        $movies = [];
         
         try {
-            // Main query with prepared statement
             $stmt = $this->conn->prepare("
                 SELECT 
                     m.movie_id, m.title, m.genre, m.duration, m.release_date, 
                     m.description, m.rating, m.language, m.poster_url, m.trailer_url,
-                    m.status, t.theater_id, t.name AS theater_name, t.location AS theater_location,
+                    m.status, t.theater_id, t.name AS theater_name, 
+                    b.branch_name, b.location AS branch_location,
                     s.show_id, s.show_time, s.price 
                 FROM movies m
                 INNER JOIN shows s ON m.movie_id = s.movie_id
                 INNER JOIN theaters t ON s.theater_id = t.theater_id
-                WHERE t.location = :location AND s.show_time >= :currentDateTime
+                INNER JOIN branches b ON t.branch_id = b.branch_id
+                WHERE b.location = :location 
+                AND s.show_time >= :currentDateTime
+                AND m.status = 'active'
+                AND b.status = 'active'
                 ORDER BY m.title ASC, s.show_time ASC
             ");
             
@@ -83,34 +90,40 @@ class MovieService {
     
     private function checkEmptyResults($results, $location, $currentDateTime) {
         if (empty($results)) {
-            $theaterCheck = $this->conn->prepare("SELECT * FROM theaters WHERE location = :location");
-            $theaterCheck->bindParam(':location', $location);
-            $theaterCheck->execute();
-            $theaters = $theaterCheck->fetchAll(PDO::FETCH_ASSOC);
-            $this->debugInfo['theaters_in_location'] = $theaters;
+            // Check branches in location
+            $branchCheck = $this->conn->prepare("SELECT * FROM branches WHERE location = :location AND status = 'active'");
+            $branchCheck->bindParam(':location', $location);
+            $branchCheck->execute();
+            $branches = $branchCheck->fetchAll(PDO::FETCH_ASSOC);
+            $this->debugInfo['branches_in_location'] = $branches;
             
-            if (!empty($theaters)) {
-                $theaterIds = array_column($theaters, 'theater_id');
-                $theaterIdsStr = implode(',', $theaterIds);
+            if (!empty($branches)) {
+                $branchIds = array_column($branches, 'branch_id');
+                $branchIdsStr = implode(',', $branchIds);
                 
-                $showCheck = $this->conn->query("
-                    SELECT s.*, m.title, t.name AS theater_name 
+                // Check theaters in these branches
+                $theaterCheck = $this->conn->query("
+                    SELECT t.*, b.branch_name 
+                    FROM theaters t
+                    JOIN branches b ON t.branch_id = b.branch_id
+                    WHERE t.branch_id IN ($branchIdsStr)
+                ");
+                $this->debugInfo['theaters_for_branches'] = $theaterCheck->fetchAll(PDO::FETCH_ASSOC);
+                
+                // Check shows for these theaters
+                $showCheck = $this->conn->prepare("
+                    SELECT s.*, m.title, t.name AS theater_name, b.branch_name
                     FROM shows s
                     JOIN movies m ON s.movie_id = m.movie_id
                     JOIN theaters t ON s.theater_id = t.theater_id
-                    WHERE s.theater_id IN ($theaterIdsStr) 
+                    JOIN branches b ON t.branch_id = b.branch_id
+                    WHERE t.branch_id IN ($branchIdsStr) 
+                    AND s.show_time >= :currentDateTime
                     LIMIT 10
                 ");
-                $this->debugInfo['shows_for_theaters'] = $showCheck->fetchAll(PDO::FETCH_ASSOC);
-                
-                $futureShowCheck = $this->conn->prepare("
-                    SELECT COUNT(*) FROM shows 
-                    WHERE theater_id IN ($theaterIdsStr) 
-                    AND show_time >= :currentDateTime
-                ");
-                $futureShowCheck->bindParam(':currentDateTime', $currentDateTime);
-                $futureShowCheck->execute();
-                $this->debugInfo['future_shows_count'] = $futureShowCheck->fetchColumn();
+                $showCheck->bindParam(':currentDateTime', $currentDateTime);
+                $showCheck->execute();
+                $this->debugInfo['shows_for_branches'] = $showCheck->fetchAll(PDO::FETCH_ASSOC);
             }
         }
     }
@@ -166,12 +179,13 @@ class MovieService {
             'show_id' => $row['show_id'],
             'theater_id' => $theaterId,
             'theater_name' => $theaterName,
+            'branch_name' => $row['branch_name'],
             'show_time' => $row['show_time'],
             'price' => $row['price']
         ];
     }
     
-    // Synchronous function for coming soon movies
+    // Fetch coming soon movies
     public function fetchComingSoonMovies() {
         try {
             $stmt = $this->conn->prepare("
@@ -192,13 +206,14 @@ class MovieService {
         }
     }
     
-    // Concurrent-friendly system status check
+    // Check system status
     public function checkSystemStatus() {
         try {
             $stmt = $this->conn->query("
                 SELECT COUNT(*) FROM shows s
                 JOIN theaters t ON s.theater_id = t.theater_id
-                WHERE s.show_time >= NOW()
+                JOIN branches b ON t.branch_id = b.branch_id
+                WHERE s.show_time >= NOW() AND b.status = 'active'
             ");
             $futureShowsCount = $stmt->fetchColumn();
             return $futureShowsCount < 5;
