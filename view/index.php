@@ -1,6 +1,4 @@
-<?php 
-include '../model/Index.php';
-?>
+<?php include '../model/Index.php';?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,16 +8,47 @@ include '../model/Index.php';
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background-color: #000000; color: #ffffff; }
-        .movie-card { background: linear-gradient(145deg, #1a1a1a, #2d2d2d); }
-        .movie-card:hover { transform: translateY(-5px); transition: all 0.3s ease; }
-        .book-button { background: linear-gradient(45deg, #ff6b6b, #ee5a24); }
-        .book-button:hover { background: linear-gradient(45deg, #ee5a24, #ff6b6b); }
-        .search-input { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
-        .genre-tag { background: rgba(255,255,255,0.1); }
-        .show-time-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); }
-        .show-time-btn:hover { background: rgba(255,255,255,0.2); }
-        .location-modal { background: linear-gradient(145deg, #1a1a1a, #2d2d2d); }
+        body { 
+            background-color: #000000; 
+            color: #ffffff; 
+        }
+        .movie-card { 
+            background: linear-gradient(145deg, #1a1a1a, #2d2d2d); 
+            transition: transform 0.3s ease;
+        }
+        .movie-card:hover { 
+            transform: translateY(-5px); 
+        }
+        .theater-card {
+            background: linear-gradient(145deg, #1a1a1a, #2d2d2d);
+            transition: transform 0.3s ease;
+        }
+        .theater-card:hover {
+            transform: translateY(-5px);
+        }
+        .book-button { 
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24); 
+        }
+        .book-button:hover { 
+            background: linear-gradient(45deg, #ee5a24, #ff6b6b); 
+        }
+        .search-input { 
+            background: rgba(255,255,255,0.1); 
+            backdrop-filter: blur(10px); 
+        }
+        .genre-tag { 
+            background: rgba(255,255,255,0.1); 
+        }
+        .show-time-btn { 
+            background: rgba(255,255,255,0.1); 
+            border: 1px solid rgba(255,255,255,0.2); 
+        }
+        .show-time-btn:hover { 
+            background: rgba(255,255,255,0.2); 
+        }
+        .location-modal { 
+            background: linear-gradient(145deg, #1a1a1a, #2d2d2d); 
+        }
     </style>
 </head>
 <body>
@@ -56,31 +85,7 @@ include '../model/Index.php';
             </div>
         </div>
         <?php endif; ?>
-        
-        <!-- Hero Section -->
-        <section class="relative bg-gradient-to-r from-gray-900 via-black to-gray-900 py-20">
-            <div class="container mx-auto px-4 text-center">
-                <h1 class="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-red-400 to-red-600 bg-clip-text text-transparent">
-                    CineBook
-                </h1>
-                <p class="text-xl md:text-2xl text-gray-300 mb-8">Your Ultimate Movie Booking Experience</p>
-                <div class="flex justify-center space-x-8 text-gray-400">
-                    <div class="text-center">
-                        <i class="fas fa-film text-3xl text-red-400 mb-2"></i>
-                        <p>Latest Movies</p>
-                    </div>
-                    <div class="text-center">
-                        <i class="fas fa-ticket-alt text-3xl text-red-400 mb-2"></i>
-                        <p>Easy Booking</p>
-                    </div>
-                    <div class="text-center">
-                        <i class="fas fa-star text-3xl text-red-400 mb-2"></i>
-                        <p>Best Experience</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-        
+
         <!-- Now Showing Section -->
         <section id="now-showing" class="container mx-auto px-4 py-20">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-12">
@@ -90,15 +95,15 @@ include '../model/Index.php';
                 </h2>
                 <div class="flex items-center space-x-4">
                     <div class="relative w-full md:w-64">
-                        <input type="text" id="searchInput" placeholder="Search movies..." 
+                        <input type="text" id="searchInput" placeholder="Search movies..."
                                class="w-full search-input rounded-full py-2.5 px-4 pl-10 text-white focus:outline-none">
                         <i class="fas fa-search text-red-400 absolute left-3 top-2.5"></i>
                     </div>
                     <?php if (isset($_SESSION['location'])): ?>
                     <form method="post" action="" class="hidden md:block">
                         <div class="relative">
-                            <select id="change_location" name="location" 
-                                    class="search-input rounded-lg py-2 px-4 pl-10 text-white focus:outline-none appearance-none pr-10" 
+                            <select id="change_location" name="location"
+                                    class="search-input rounded-lg py-2 px-4 pl-10 text-white focus:outline-none appearance-none pr-10"
                                     onchange="this.form.submit()">
                                 <?php foreach ($locations as $loc): ?>
                                     <option value="<?php echo htmlspecialchars($loc); ?>" <?php echo $loc === $_SESSION['location'] ? 'selected' : ''; ?>>
@@ -126,8 +131,8 @@ include '../model/Index.php';
                     <?php foreach ($movies as $movie): ?>
                     <div class="movie-card rounded-xl overflow-hidden shadow-lg">
                         <div class="relative h-80">
-                            <img src="<?php echo !empty($movie['poster_url']) ? htmlspecialchars($movie['poster_url']) : '/placeholder.svg?height=400&width=300'; ?>" 
-                                 alt="<?php echo htmlspecialchars($movie['title']); ?>" 
+                            <img src="<?php echo !empty($movie['poster_url']) ? htmlspecialchars($movie['poster_url']) : '/placeholder.svg?height=400&width=300'; ?>"
+                                 alt="<?php echo htmlspecialchars($movie['title']); ?>"
                                  class="w-full h-full object-cover">
                             <?php if (!empty($movie['trailer_url'])): ?>
                             <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
@@ -195,7 +200,7 @@ include '../model/Index.php';
                                         if (strtotime($show['show_time']) > strtotime($currentDateTime) && $showCount < 4):
                                             $showTime = date('h:i A', strtotime($show['show_time']));
                                     ?>
-                                        <button class="show-time-btn text-xs px-3 py-1.5 rounded-full text-white hover:bg-red-600 transition-colors" 
+                                        <button class="show-time-btn text-xs px-3 py-1.5 rounded-full text-white hover:bg-red-600 transition-colors"
                                                 onclick="window.location.href='booking.php?show_id=<?php echo $show['show_id']; ?>'">
                                             <?php echo $showTime; ?>
                                         </button>
@@ -212,10 +217,10 @@ include '../model/Index.php';
                                     <span class="text-red-400 font-medium">From </span>
                                     <span class="text-lg font-semibold text-white">Rs<?php 
                                         $prices = array_column($movie['shows'], 'price');
-                                        echo !empty($prices) ? number_format(min($prices), 2) : '0.00'; 
+                                        echo !empty($prices) ? number_format(min($prices), 2) : '0.00';
                                     ?></span>
                                 </div>
-                                <a href="movie_detail.php?id=<?php echo $movie['movie_id']; ?>" 
+                                <a href="movie_detail.php?id=<?php echo $movie['movie_id']; ?>"
                                    class="book-button px-6 py-2 text-white rounded-lg font-medium transition-all hover:shadow-lg">
                                     Book Now
                                 </a>
@@ -226,45 +231,91 @@ include '../model/Index.php';
                 <?php endif; ?>
             </div>
         </section>
-        
-        <!-- Coming Soon Section -->
+
+        <!-- Theaters Section -->
         <section class="container mx-auto px-4 py-20">
-            <h2 class="text-3xl font-bold text-white mb-10">Coming Soon</h2>
+            <h2 class="text-3xl font-bold text-white mb-10">Our Theaters</h2>
             
-            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                <?php if (isset($comingSoonMovies) && !empty($comingSoonMovies)): ?>
-                    <?php foreach ($comingSoonMovies as $movie): ?>
-                    <div class="movie-card rounded-xl overflow-hidden shadow-lg">
-                        <div class="h-48">
-                            <img src="<?php echo !empty($movie['poster_url']) ? htmlspecialchars($movie['poster_url']) : '/placeholder.svg?height=300&width=200'; ?>" 
-                                 alt="<?php echo htmlspecialchars($movie['title']); ?>" 
-                                 class="w-full h-full object-cover">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <?php 
+                // Fetch all theaters
+                try {
+                    $stmt = $conn->prepare("
+                        SELECT 
+                            theater_id,
+                            name,
+                            location,
+                            capacity,
+                            address,
+                            city,
+                            state,
+                            screens,
+                            theater_image,
+                            created_at
+                        FROM 
+                            theaters 
+                        ORDER BY 
+                            name ASC
+                    ");
+                    $stmt->execute();
+                    $theaters = $stmt->fetchAll();
+                    
+                    if (!empty($theaters)): 
+                        foreach ($theaters as $theater): ?>
+                        <div class="theater-card rounded-xl overflow-hidden shadow-lg">
+                            <div class="h-48">
+                                <img src="<?php echo !empty($theater['theater_image']) ? htmlspecialchars($theater['theater_image']) : '/placeholder.svg?height=300&width=400'; ?>"
+                                     alt="<?php echo htmlspecialchars($theater['name']); ?>"
+                                     class="w-full h-full object-cover">
+                            </div>
+                            <div class="p-6">
+                                <h3 class="text-xl font-semibold text-white mb-2"><?php echo htmlspecialchars($theater['name']); ?></h3>
+                                <div class="flex items-center text-gray-400 mb-2">
+                                    <i class="fas fa-map-marker-alt text-red-400 mr-2"></i>
+                                    <span><?php echo htmlspecialchars($theater['location']); ?></span>
+                                </div>
+                                <?php if (!empty($theater['city'])): ?>
+                                <div class="flex items-center text-gray-400 mb-2">
+                                    <i class="fas fa-city text-red-400 mr-2"></i>
+                                    <span><?php echo htmlspecialchars($theater['city']); ?>, <?php echo htmlspecialchars($theater['state']); ?></span>
+                                </div>
+                                <?php endif; ?>
+                                <div class="flex items-center text-gray-400 mb-2">
+                                    <i class="fas fa-users text-red-400 mr-2"></i>
+                                    <span>Capacity: <?php echo $theater['capacity']; ?></span>
+                                </div>
+                                <div class="flex items-center text-gray-400 mb-4">
+                                    <i class="fas fa-tv text-red-400 mr-2"></i>
+                                    <span>Screens: <?php echo $theater['screens']; ?></span>
+                                </div>
+                                <?php if (!empty($theater['address'])): ?>
+                                <p class="text-sm text-gray-500 mb-4"><?php echo htmlspecialchars($theater['address']); ?></p>
+                                <?php endif; ?>
+                                <button class="w-full book-button py-2 rounded-lg font-medium text-white transition-all hover:shadow-lg">
+                                    View Shows
+                                </button>
+                            </div>
                         </div>
-                        <div class="p-4">
-                            <h3 class="text-sm font-medium text-white mb-1 truncate"><?php echo htmlspecialchars($movie['title']); ?></h3>
-                            <p class="text-xs text-gray-400">
-                                <?php echo !empty($movie['release_date']) ? date('M d, Y', strtotime($movie['release_date'])) : 'Coming Soon'; ?>
-                            </p>
+                        <?php endforeach; 
+                    else: ?>
+                        <div class="col-span-full text-center py-16">
+                            <i class="fas fa-building text-6xl text-gray-600 mb-6"></i>
+                            <h3 class="text-2xl font-semibold mb-3">No Theaters Available</h3>
+                            <p class="text-gray-400 max-w-lg mx-auto">There are no theaters available at this time.</p>
                         </div>
-                    </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <?php for ($i = 0; $i < 6; $i++): ?>
-                    <div class="movie-card rounded-xl overflow-hidden shadow-lg">
-                        <div class="h-48 bg-gray-800 flex items-center justify-center">
-                            <i class="fas fa-film text-4xl text-gray-600"></i>
-                        </div>
-                        <div class="p-4">
-                            <div class="h-4 bg-gray-700 rounded mb-2"></div>
-                            <div class="h-3 bg-gray-700 rounded w-3/4"></div>
-                        </div>
-                    </div>
-                    <?php endfor; ?>
-                <?php endif; ?>
+                    <?php endif; 
+                } catch(PDOException $e) {
+                    echo '<div class="col-span-full text-center py-16">';
+                    echo '<i class="fas fa-exclamation-triangle text-6xl text-red-600 mb-6"></i>';
+                    echo '<h3 class="text-2xl font-semibold mb-3">Error Loading Theaters</h3>';
+                    echo '<p class="text-gray-400">Unable to load theater information.</p>';
+                    echo '</div>';
+                }
+                ?>
             </div>
         </section>
     </div>
-    
+
     <!-- Video Modal -->
     <div id="trailerModal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
         <div class="absolute inset-0 bg-black bg-opacity-80" onclick="closeTrailerModal()"></div>
@@ -279,9 +330,9 @@ include '../model/Index.php';
             </div>
         </div>
     </div>
-    
+
     <?php include '../includes/footer.php'; ?>
-    
+
     <script>
         // Search functionality
         const searchInput = document.getElementById('searchInput');
@@ -302,7 +353,7 @@ include '../model/Index.php';
                 }
             });
         });
-        
+
         // Trailer functionality
         function playTrailer(trailerUrl, movieTitle) {
             const modal = document.getElementById('trailerModal');
@@ -321,7 +372,7 @@ include '../model/Index.php';
                 player.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
             }
         }
-        
+
         function closeTrailerModal() {
             const modal = document.getElementById('trailerModal');
             const player = document.getElementById('trailerPlayer');
@@ -329,7 +380,7 @@ include '../model/Index.php';
             modal.classList.add('hidden');
             player.src = '';
         }
-        
+
         // Close modal with escape key
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {

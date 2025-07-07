@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 25, 2025 at 06:40 PM
+-- Generation Time: Jul 07, 2025 at 05:01 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -51,7 +51,40 @@ INSERT INTO `bookings` (`booking_id`, `user_id`, `show_id`, `total_price`, `book
 (61, 4, 435, 620.00, 'Cancelled', '2025-06-23 16:40:20', 'pending', NULL, NULL),
 (62, 4, 435, 420.00, 'Cancelled', '2025-06-23 17:01:20', 'pending', NULL, NULL),
 (72, 4, 436, 320.00, 'Pending', '2025-06-25 16:29:51', 'pending', NULL, NULL),
-(73, 4, 436, 320.00, 'Pending', '2025-06-25 16:33:47', 'pending', NULL, NULL);
+(73, 4, 436, 320.00, 'Pending', '2025-06-25 16:33:47', 'pending', NULL, NULL),
+(76, 2, 436, 320.00, 'Pending', '2025-06-25 16:41:50', 'pending', NULL, NULL),
+(77, 2, 436, 320.00, 'Pending', '2025-06-25 16:41:50', 'pending', NULL, NULL),
+(78, 2, 437, 470.00, 'Pending', '2025-07-06 15:35:35', 'pending', NULL, NULL),
+(79, 2, 437, 470.00, 'Pending', '2025-07-06 15:35:36', 'pending', NULL, NULL),
+(80, 2, 437, 620.00, '', '2025-07-06 15:51:12', 'failed', NULL, NULL),
+(81, 2, 437, 620.00, 'Pending', '2025-07-06 15:52:18', 'pending', NULL, NULL),
+(82, 2, 437, 620.00, 'Confirmed', '2025-07-06 15:52:18', 'paid', 'khalti', 'CINE82_1751817582'),
+(83, 2, 437, 320.00, 'Pending', '2025-07-06 16:02:11', 'pending', NULL, NULL),
+(84, 2, 437, 320.00, 'Pending', '2025-07-06 16:02:11', 'pending', NULL, NULL),
+(85, 2, 437, 620.00, 'Pending', '2025-07-06 16:11:05', 'pending', NULL, NULL),
+(86, 2, 437, 620.00, 'Confirmed', '2025-07-06 16:11:05', 'paid', 'khalti', 'CINE86_1751818270'),
+(87, 2, 437, 770.00, 'Confirmed', '2025-07-06 16:17:28', 'paid', 'khalti', 'CINE87_1751818674'),
+(88, 2, 437, 770.00, 'Pending', '2025-07-06 16:17:28', 'pending', NULL, NULL),
+(89, 2, 437, 320.00, 'Confirmed', '2025-07-06 16:26:48', 'paid', 'khalti', 'CINE89_1751819212'),
+(90, 2, 437, 320.00, 'Pending', '2025-07-06 16:26:48', 'pending', NULL, NULL),
+(91, 2, 437, 620.00, 'Confirmed', '2025-07-06 16:28:00', 'paid', 'khalti', 'CINE91_1751819285'),
+(92, 2, 437, 620.00, 'Pending', '2025-07-06 16:28:01', 'pending', NULL, NULL),
+(93, 2, 437, 620.00, 'Pending', '2025-07-07 01:10:52', 'pending', NULL, NULL),
+(94, 2, 437, 620.00, 'Pending', '2025-07-07 01:10:52', 'pending', NULL, NULL),
+(95, 2, 437, 620.00, 'Confirmed', '2025-07-07 01:22:27', 'paid', 'khalti', 'CINE95_1751851416'),
+(96, 2, 437, 620.00, 'Pending', '2025-07-07 01:22:27', 'pending', NULL, NULL),
+(97, 2, 437, 620.00, 'Pending', '2025-07-07 01:58:57', 'pending', NULL, NULL),
+(98, 2, 437, 620.00, 'Confirmed', '2025-07-07 01:58:57', 'paid', 'khalti', 'CINE98_1751853542'),
+(99, 2, 437, 470.00, 'Pending', '2025-07-07 02:09:01', 'pending', NULL, NULL),
+(100, 2, 437, 470.00, 'Confirmed', '2025-07-07 02:09:02', 'paid', 'khalti', 'CINE100_1751854145'),
+(101, 2, 437, 320.00, 'Confirmed', '2025-07-07 02:34:11', 'paid', 'khalti', 'CINE101_1751855681'),
+(102, 2, 437, 320.00, 'Pending', '2025-07-07 02:34:11', 'pending', NULL, NULL),
+(103, 2, 437, 470.00, 'Confirmed', '2025-07-07 02:43:35', 'paid', 'khalti', 'CINE103_1751856223'),
+(104, 2, 437, 470.00, 'Pending', '2025-07-07 02:43:35', 'pending', 'khalti', 'CINE104_1751856498'),
+(105, 2, 437, 320.00, 'Confirmed', '2025-07-07 02:49:13', 'paid', 'khalti', 'CINE105_1751856567'),
+(106, 2, 437, 320.00, 'Pending', '2025-07-07 02:49:13', 'pending', NULL, NULL),
+(107, 2, 437, 320.00, 'Pending', '2025-07-07 02:57:12', 'pending', NULL, NULL),
+(108, 2, 437, 320.00, 'Confirmed', '2025-07-07 02:57:12', 'paid', 'khalti', 'CINE108_1751857065');
 
 -- --------------------------------------------------------
 
@@ -170,7 +203,23 @@ INSERT INTO `payment` (`id`, `user_id`, `booking_id`, `show_id`, `amount`, `paym
 (9, 3, 59, 434, 1020.00, 'Khalti', 'Paid', '2025-03-22 16:44:14', '2025-03-22 16:44:14'),
 (10, 3, 59, 434, 1020.00, 'Khalti', 'Paid', '2025-03-22 17:00:47', '2025-03-22 17:00:47'),
 (11, 3, 60, 434, 1020.00, 'Khalti', 'Paid', '2025-03-22 17:03:49', '2025-03-22 17:03:49'),
-(12, 3, 60, 434, 1020.00, 'Khalti', 'Paid', '2025-03-22 17:03:50', '2025-03-22 17:03:50');
+(12, 3, 60, 434, 1020.00, 'Khalti', 'Paid', '2025-03-22 17:03:50', '2025-03-22 17:03:50'),
+(13, 2, 82, 437, 620.00, 'Khalti', 'Paid', '2025-07-06 16:00:09', '2025-07-06 16:00:09'),
+(14, 2, 86, 437, 620.00, 'Khalti', 'Paid', '2025-07-06 16:11:32', '2025-07-06 16:11:32'),
+(15, 2, 87, 437, 770.00, 'Khalti', 'Paid', '2025-07-06 16:18:16', '2025-07-06 16:18:16'),
+(16, 2, 89, 437, 320.00, 'Khalti', 'Paid', '2025-07-06 16:27:09', '2025-07-06 16:27:09'),
+(17, 2, 91, 437, 620.00, 'Khalti', 'Paid', '2025-07-06 16:28:26', '2025-07-06 16:28:26'),
+(18, 2, 95, 437, 620.00, 'Khalti', 'Paid', '2025-07-07 01:24:28', '2025-07-07 01:24:28'),
+(19, 2, 98, 437, 620.00, 'Khalti', 'Paid', '2025-07-07 01:59:29', '2025-07-07 01:59:29'),
+(20, 2, 100, 437, 470.00, 'Khalti', 'Paid', '2025-07-07 02:09:28', '2025-07-07 02:09:28'),
+(21, 2, 101, 437, 320.00, 'Khalti', 'Paid', '2025-07-07 02:35:16', '2025-07-07 02:35:16'),
+(22, 2, 101, 437, 320.00, 'Khalti', 'Paid', '2025-07-07 02:35:23', '2025-07-07 02:35:23'),
+(23, 2, 103, 437, 470.00, 'Khalti', 'Paid', '2025-07-07 02:44:19', '2025-07-07 02:44:19'),
+(24, 2, 103, 437, 470.00, 'Khalti', 'Paid', '2025-07-07 02:44:23', '2025-07-07 02:44:23'),
+(25, 2, 105, 437, 320.00, 'Khalti', 'Paid', '2025-07-07 02:50:06', '2025-07-07 02:50:06'),
+(26, 2, 105, 437, 320.00, 'Khalti', 'Paid', '2025-07-07 02:50:11', '2025-07-07 02:50:11'),
+(27, 2, 108, 437, 320.00, 'Khalti', 'Paid', '2025-07-07 02:58:12', '2025-07-07 02:58:12'),
+(28, 2, 108, 437, 320.00, 'Khalti', 'Paid', '2025-07-07 02:58:16', '2025-07-07 02:58:16');
 
 -- --------------------------------------------------------
 
@@ -203,7 +252,37 @@ INSERT INTO `payment_logs` (`log_id`, `booking_id`, `user_id`, `amount`, `paymen
 (30, 59, 3, 1020.00, 'khalti', 'UweHuCiTHV8kYvyr7oWjgd', '{\"pidx\":\"UweHuCiTHV8kYvyr7oWjgd\",\"total_amount\":102000,\"status\":\"Completed\",\"transaction_id\":\"chWo8ZKjJok8Q8KV8BaVwc\",\"fee\":0,\"refunded\":false}', '2025-03-22 22:45:47'),
 (31, 60, 3, 1020.00, 'khalti', 'CINE60_1742663004', '{\"pidx\":\"cMqvP9ZdGRXzb3otXswMMc\",\"payment_url\":\"https://test-pay.khalti.com/?pidx=cMqvP9ZdGRXzb3otXswMMc\",\"expires_at\":\"2025-03-22T23:18:22.737214+05:45\",\"expires_in\":1800}', '2025-03-22 22:48:24'),
 (32, 60, 3, 1020.00, 'khalti', 'cMqvP9ZdGRXzb3otXswMMc', '{\"pidx\":\"cMqvP9ZdGRXzb3otXswMMc\",\"status\":\"Completed\"}', '2025-03-22 22:48:49'),
-(33, 60, 3, 1020.00, 'khalti', 'cMqvP9ZdGRXzb3otXswMMc', '{\"pidx\":\"cMqvP9ZdGRXzb3otXswMMc\",\"total_amount\":102000,\"status\":\"Completed\",\"transaction_id\":\"dKvrrBbxuMMdr2jVx4XweG\",\"fee\":0,\"refunded\":false}', '2025-03-22 22:48:50');
+(33, 60, 3, 1020.00, 'khalti', 'cMqvP9ZdGRXzb3otXswMMc', '{\"pidx\":\"cMqvP9ZdGRXzb3otXswMMc\",\"total_amount\":102000,\"status\":\"Completed\",\"transaction_id\":\"dKvrrBbxuMMdr2jVx4XweG\",\"fee\":0,\"refunded\":false}', '2025-03-22 22:48:50'),
+(34, 82, 2, 620.00, 'khalti', 'CINE82_1751817582', '{\"pidx\":\"PSWjDzHYsWmZakPPQVuEjY\",\"payment_url\":\"https://test-pay.khalti.com/?pidx=PSWjDzHYsWmZakPPQVuEjY\",\"expires_at\":\"2025-07-06T22:14:42.762290+05:45\",\"expires_in\":1800}', '2025-07-06 21:44:42'),
+(35, 82, 2, 620.00, 'khalti', 'PSWjDzHYsWmZakPPQVuEjY', '{\"pidx\":\"PSWjDzHYsWmZakPPQVuEjY\",\"total_amount\":62000,\"status\":\"Completed\",\"transaction_id\":\"coicrCxJvvLxganLX2VXfj\",\"fee\":0,\"refunded\":false}', '2025-07-06 21:45:09'),
+(36, 86, 2, 620.00, 'khalti', 'CINE86_1751818270', '{\"pidx\":\"8qzWrZWdK3wW5jfNmgZspm\",\"payment_url\":\"https://test-pay.khalti.com/?pidx=8qzWrZWdK3wW5jfNmgZspm\",\"expires_at\":\"2025-07-06T22:26:11.643401+05:45\",\"expires_in\":1800}', '2025-07-06 21:56:11'),
+(37, 86, 2, 620.00, 'khalti', '8qzWrZWdK3wW5jfNmgZspm', '{\"pidx\":\"8qzWrZWdK3wW5jfNmgZspm\",\"total_amount\":62000,\"status\":\"Completed\",\"transaction_id\":\"jCa7GvMA26vogswSReMjAm\",\"fee\":0,\"refunded\":false}', '2025-07-06 21:56:32'),
+(38, 87, 2, 770.00, 'khalti', 'CINE87_1751818674', '{\"pidx\":\"yHeVxV3LCnBksb8u9dcThc\",\"payment_url\":\"https://test-pay.khalti.com/?pidx=yHeVxV3LCnBksb8u9dcThc\",\"expires_at\":\"2025-07-06T22:32:55.118867+05:45\",\"expires_in\":1800}', '2025-07-06 22:02:55'),
+(39, 87, 2, 770.00, 'khalti', 'yHeVxV3LCnBksb8u9dcThc', '{\"pidx\":\"yHeVxV3LCnBksb8u9dcThc\",\"total_amount\":77000,\"status\":\"Completed\",\"transaction_id\":\"CBzvre8m53PzntFho77B8k\",\"fee\":0,\"refunded\":false}', '2025-07-06 22:03:16'),
+(40, 89, 2, 320.00, 'khalti', 'CINE89_1751819212', '{\"pidx\":\"EasHJjY3bZCgwsiR6GK7MK\",\"payment_url\":\"https://test-pay.khalti.com/?pidx=EasHJjY3bZCgwsiR6GK7MK\",\"expires_at\":\"2025-07-06T22:41:53.044155+05:45\",\"expires_in\":1800}', '2025-07-06 22:11:53'),
+(41, 89, 2, 320.00, 'khalti', 'EasHJjY3bZCgwsiR6GK7MK', '{\"pidx\":\"EasHJjY3bZCgwsiR6GK7MK\",\"total_amount\":32000,\"status\":\"Completed\",\"transaction_id\":\"oAbCpJ8hQm7RjTSjtNFrhD\",\"fee\":0,\"refunded\":false}', '2025-07-06 22:12:09'),
+(42, 91, 2, 620.00, 'khalti', 'CINE91_1751819285', '{\"pidx\":\"catA3iGXb5PcdzZg5M57gk\",\"payment_url\":\"https://test-pay.khalti.com/?pidx=catA3iGXb5PcdzZg5M57gk\",\"expires_at\":\"2025-07-06T22:43:05.784041+05:45\",\"expires_in\":1800}', '2025-07-06 22:13:06'),
+(43, 91, 2, 620.00, 'khalti', 'catA3iGXb5PcdzZg5M57gk', '{\"pidx\":\"catA3iGXb5PcdzZg5M57gk\",\"total_amount\":62000,\"status\":\"Completed\",\"transaction_id\":\"xoqMFrgmm8KE9dWANiFz8E\",\"fee\":0,\"refunded\":false}', '2025-07-06 22:13:26'),
+(44, 95, 2, 620.00, 'khalti', 'CINE95_1751851416', '{\"pidx\":\"cryFiaLSfhibaHTGhz6FVM\",\"payment_url\":\"https://test-pay.khalti.com/?pidx=cryFiaLSfhibaHTGhz6FVM\",\"expires_at\":\"2025-07-07T07:38:37.975403+05:45\",\"expires_in\":1800}', '2025-07-07 07:08:41'),
+(45, 95, 2, 620.00, 'khalti', 'cryFiaLSfhibaHTGhz6FVM', '{\"pidx\":\"cryFiaLSfhibaHTGhz6FVM\",\"total_amount\":62000,\"status\":\"Completed\",\"transaction_id\":\"DkrtCUtNE4Bjk4RXbaGhGW\",\"fee\":0,\"refunded\":false}', '2025-07-07 07:09:28'),
+(46, 98, 2, 620.00, 'khalti', 'CINE98_1751853542', '{\"pidx\":\"KT9NXkQsbSDkyJ25pXmotT\",\"payment_url\":\"https://test-pay.khalti.com/?pidx=KT9NXkQsbSDkyJ25pXmotT\",\"expires_at\":\"2025-07-07T08:14:03.092591+05:45\",\"expires_in\":1800}', '2025-07-07 07:44:03'),
+(47, 98, 2, 620.00, 'khalti', 'KT9NXkQsbSDkyJ25pXmotT', '{\"pidx\":\"KT9NXkQsbSDkyJ25pXmotT\",\"total_amount\":62000,\"status\":\"Completed\",\"transaction_id\":\"9d2cdf3LMHar4TuXGgidqC\",\"fee\":0,\"refunded\":false}', '2025-07-07 07:44:29'),
+(48, 100, 2, 470.00, 'khalti', 'CINE100_1751854145', '{\"pidx\":\"og3htM2UbGPhZUtHAzCoGG\",\"payment_url\":\"https://test-pay.khalti.com/?pidx=og3htM2UbGPhZUtHAzCoGG\",\"expires_at\":\"2025-07-07T08:24:07.039720+05:45\",\"expires_in\":1800}', '2025-07-07 07:54:07'),
+(49, 100, 2, 470.00, 'khalti', 'og3htM2UbGPhZUtHAzCoGG', '{\"pidx\":\"og3htM2UbGPhZUtHAzCoGG\",\"total_amount\":47000,\"status\":\"Completed\",\"transaction_id\":\"o2MFPZ4RWczJUeAL7kAcGF\",\"fee\":0,\"refunded\":false}', '2025-07-07 07:54:28'),
+(50, 101, 2, 320.00, 'khalti', 'CINE101_1751855681', '{\"pidx\":\"iHknT3hWJJGM3xh7EtpNDb\",\"payment_url\":\"https://test-pay.khalti.com/?pidx=iHknT3hWJJGM3xh7EtpNDb\",\"expires_at\":\"2025-07-07T08:49:45.650180+05:45\",\"expires_in\":1800}', '2025-07-07 08:19:45'),
+(51, 101, 2, 320.00, 'khalti', 'iHknT3hWJJGM3xh7EtpNDb', '{\"pidx\":\"iHknT3hWJJGM3xh7EtpNDb\",\"total_amount\":32000,\"status\":\"Completed\",\"transaction_id\":\"K66Sru2pHNqGQGHu4QnQJR\",\"fee\":0,\"refunded\":false}', '2025-07-07 08:20:16'),
+(52, 101, 2, 320.00, 'khalti', 'iHknT3hWJJGM3xh7EtpNDb', '{\"pidx\":\"iHknT3hWJJGM3xh7EtpNDb\",\"total_amount\":32000,\"status\":\"Completed\",\"transaction_id\":\"K66Sru2pHNqGQGHu4QnQJR\",\"fee\":0,\"refunded\":false}', '2025-07-07 08:20:23'),
+(53, 103, 2, 470.00, 'khalti', 'CINE103_1751856223', '{\"pidx\":\"ShmfY35aA7QpF5i9dVqaPZ\",\"payment_url\":\"https://test-pay.khalti.com/?pidx=ShmfY35aA7QpF5i9dVqaPZ\",\"expires_at\":\"2025-07-07T08:58:47.630454+05:45\",\"expires_in\":1800}', '2025-07-07 08:28:47'),
+(54, 103, 2, 470.00, 'khalti', 'ShmfY35aA7QpF5i9dVqaPZ', '{\"pidx\":\"ShmfY35aA7QpF5i9dVqaPZ\",\"total_amount\":47000,\"status\":\"Completed\",\"transaction_id\":\"cSZoLFfZDFKpFA2up3pr7h\",\"fee\":0,\"refunded\":false}', '2025-07-07 08:29:19'),
+(55, 103, 2, 470.00, 'khalti', 'ShmfY35aA7QpF5i9dVqaPZ', '{\"pidx\":\"ShmfY35aA7QpF5i9dVqaPZ\",\"total_amount\":47000,\"status\":\"Completed\",\"transaction_id\":\"cSZoLFfZDFKpFA2up3pr7h\",\"fee\":0,\"refunded\":false}', '2025-07-07 08:29:23'),
+(56, 104, 2, 470.00, 'khalti', 'CINE104_1751856498', '{\"pidx\":\"hVGSgAB2mZhtB6pLjXccGd\",\"payment_url\":\"https://test-pay.khalti.com/?pidx=hVGSgAB2mZhtB6pLjXccGd\",\"expires_at\":\"2025-07-07T09:03:21.564916+05:45\",\"expires_in\":1800}', '2025-07-07 08:33:21'),
+(57, 105, 2, 320.00, 'khalti', 'CINE105_1751856567', '{\"pidx\":\"NRHd95HatwwfgUvTeJQRUZ\",\"payment_url\":\"https://test-pay.khalti.com/?pidx=NRHd95HatwwfgUvTeJQRUZ\",\"expires_at\":\"2025-07-07T09:04:31.693052+05:45\",\"expires_in\":1800}', '2025-07-07 08:34:31'),
+(58, 105, 2, 320.00, 'khalti', 'NRHd95HatwwfgUvTeJQRUZ', '{\"pidx\":\"NRHd95HatwwfgUvTeJQRUZ\",\"total_amount\":32000,\"status\":\"Completed\",\"transaction_id\":\"tt744BoPnzgzBHTgata6ad\",\"fee\":0,\"refunded\":false}', '2025-07-07 08:35:06'),
+(59, 105, 2, 320.00, 'khalti', 'NRHd95HatwwfgUvTeJQRUZ', '{\"pidx\":\"NRHd95HatwwfgUvTeJQRUZ\",\"total_amount\":32000,\"status\":\"Completed\",\"transaction_id\":\"tt744BoPnzgzBHTgata6ad\",\"fee\":0,\"refunded\":false}', '2025-07-07 08:35:11'),
+(60, 108, 2, 320.00, 'khalti', 'CINE108_1751857041', '{\"pidx\":\"THN2sxjqmJLxGCkqNY3iAX\",\"payment_url\":\"https://test-pay.khalti.com/?pidx=THN2sxjqmJLxGCkqNY3iAX\",\"expires_at\":\"2025-07-07T09:12:24.651186+05:45\",\"expires_in\":1800}', '2025-07-07 08:42:24'),
+(61, 108, 2, 320.00, 'khalti', 'CINE108_1751857065', '{\"pidx\":\"sjuAfZHpXcY2Diy2kKMtW4\",\"payment_url\":\"https://test-pay.khalti.com/?pidx=sjuAfZHpXcY2Diy2kKMtW4\",\"expires_at\":\"2025-07-07T09:12:48.162788+05:45\",\"expires_in\":1800}', '2025-07-07 08:42:48'),
+(62, 108, 2, 320.00, 'khalti', 'sjuAfZHpXcY2Diy2kKMtW4', '{\"pidx\":\"sjuAfZHpXcY2Diy2kKMtW4\",\"total_amount\":32000,\"status\":\"Completed\",\"transaction_id\":\"GzmBgrpDw5KS7pYWES3AVR\",\"fee\":0,\"refunded\":false}', '2025-07-07 08:43:12'),
+(63, 108, 2, 320.00, 'khalti', 'sjuAfZHpXcY2Diy2kKMtW4', '{\"pidx\":\"sjuAfZHpXcY2Diy2kKMtW4\",\"total_amount\":32000,\"status\":\"Completed\",\"transaction_id\":\"GzmBgrpDw5KS7pYWES3AVR\",\"fee\":0,\"refunded\":false}', '2025-07-07 08:43:16');
 
 -- --------------------------------------------------------
 
@@ -587,7 +666,107 @@ INSERT INTO `seats` (`seat_id`, `show_id`, `seat_number`, `status`, `booking_id`
 (726, 436, 'J9', 'available', NULL, '2025-06-25 15:56:02', '2025-06-25 16:28:38'),
 (727, 436, 'J10', 'available', NULL, '2025-06-25 15:56:02', '2025-06-25 16:28:38'),
 (728, 436, 'A3', 'reserved', 72, '2025-06-25 16:29:51', '2025-06-25 16:29:51'),
-(729, 436, 'A4', 'reserved', 72, '2025-06-25 16:29:51', '2025-06-25 16:29:51');
+(729, 436, 'A4', 'reserved', 72, '2025-06-25 16:29:51', '2025-06-25 16:29:51'),
+(730, 437, 'A1', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(731, 437, 'A2', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(732, 437, 'A3', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(733, 437, 'A4', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(734, 437, 'A5', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(735, 437, 'A6', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(736, 437, 'A7', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(737, 437, 'A8', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(738, 437, 'A9', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(739, 437, 'A10', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(740, 437, 'B1', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(741, 437, 'B2', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(742, 437, 'B3', 'booked', 108, '2025-07-06 15:35:03', '2025-07-07 02:58:17'),
+(743, 437, 'B4', 'booked', 108, '2025-07-06 15:35:03', '2025-07-07 02:58:17'),
+(744, 437, 'B5', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(745, 437, 'B6', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(746, 437, 'B7', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(747, 437, 'B8', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(748, 437, 'B9', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(749, 437, 'B10', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(750, 437, 'C1', 'booked', 103, '2025-07-06 15:35:03', '2025-07-07 02:44:23'),
+(751, 437, 'C2', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(752, 437, 'C3', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(753, 437, 'C4', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(754, 437, 'C5', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(755, 437, 'C6', 'booked', 105, '2025-07-06 15:35:03', '2025-07-07 02:50:11'),
+(756, 437, 'C7', 'booked', 105, '2025-07-06 15:35:03', '2025-07-07 02:50:11'),
+(757, 437, 'C8', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(758, 437, 'C9', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(759, 437, 'C10', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(760, 437, 'D1', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(761, 437, 'D2', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(762, 437, 'D3', 'booked', 103, '2025-07-06 15:35:03', '2025-07-07 02:44:23'),
+(763, 437, 'D4', 'booked', 103, '2025-07-06 15:35:03', '2025-07-07 02:44:23'),
+(764, 437, 'D5', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(765, 437, 'D6', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(766, 437, 'D7', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(767, 437, 'D8', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(768, 437, 'D9', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(769, 437, 'D10', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(770, 437, 'E1', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(771, 437, 'E2', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(772, 437, 'E3', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(773, 437, 'E4', 'booked', 101, '2025-07-06 15:35:03', '2025-07-07 02:35:23'),
+(774, 437, 'E5', 'booked', 101, '2025-07-06 15:35:03', '2025-07-07 02:35:23'),
+(775, 437, 'E6', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(776, 437, 'E7', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(777, 437, 'E8', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(778, 437, 'E9', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(779, 437, 'E10', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(780, 437, 'F1', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(781, 437, 'F2', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(782, 437, 'F3', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(783, 437, 'F4', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(784, 437, 'F5', 'booked', 100, '2025-07-06 15:35:03', '2025-07-07 02:09:30'),
+(785, 437, 'F6', 'booked', 100, '2025-07-06 15:35:03', '2025-07-07 02:09:30'),
+(786, 437, 'F7', 'booked', 100, '2025-07-06 15:35:03', '2025-07-07 02:09:30'),
+(787, 437, 'F8', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(788, 437, 'F9', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(789, 437, 'F10', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(790, 437, 'G1', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(791, 437, 'G2', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(792, 437, 'G3', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(793, 437, 'G4', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(794, 437, 'G5', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(795, 437, 'G6', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(796, 437, 'G7', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(797, 437, 'G8', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(798, 437, 'G9', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(799, 437, 'G10', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(800, 437, 'H1', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(801, 437, 'H2', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(802, 437, 'H3', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(803, 437, 'H4', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(804, 437, 'H5', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(805, 437, 'H6', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(806, 437, 'H7', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(807, 437, 'H8', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(808, 437, 'H9', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(809, 437, 'H10', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(810, 437, 'I1', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(811, 437, 'I2', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(812, 437, 'I3', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(813, 437, 'I4', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(814, 437, 'I5', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(815, 437, 'I6', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(816, 437, 'I7', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(817, 437, 'I8', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(818, 437, 'I9', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(819, 437, 'I10', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(820, 437, 'J1', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(821, 437, 'J2', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(822, 437, 'J3', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(823, 437, 'J4', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(824, 437, 'J5', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(825, 437, 'J6', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(826, 437, 'J7', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(827, 437, 'J8', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(828, 437, 'J9', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03'),
+(829, 437, 'J10', 'available', NULL, '2025-07-06 15:35:03', '2025-07-06 15:35:03');
 
 -- --------------------------------------------------------
 
@@ -622,7 +801,8 @@ INSERT INTO `shows` (`show_id`, `movie_id`, `theater_id`, `show_time`, `price`, 
 (433, 5, 1, '2025-03-22 12:00:00', 200.00, '2025-03-21 14:38:41', NULL),
 (434, 7, 1, '2025-03-28 21:00:00', 200.00, '2025-03-22 14:04:15', NULL),
 (435, 8, 2, '2025-06-25 15:00:00', 200.00, '2025-06-23 16:37:45', 1),
-(436, 5, 2, '2025-06-26 09:00:00', 150.00, '2025-06-25 15:56:01', 1);
+(436, 5, 2, '2025-06-26 09:00:00', 150.00, '2025-06-25 15:56:01', 1),
+(437, 5, 2, '2025-07-17 15:00:00', 150.00, '2025-07-06 15:35:03', 1);
 
 -- --------------------------------------------------------
 
@@ -769,9 +949,10 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `name`, `email`, `phone`, `password_hash`, `role`, `created_at`) VALUES
+(0, 'Umesh Pokharel', 'umesh@gmail.com', '9811388848', '$2y$10$hilzvSFzf0WfFUlcPlLMEeEjG8vgMQrpYK3Edac8UdYsE57wCCGK.', 'user', '2025-07-07 02:16:55'),
 (1, 'Admin', 'admin@example.com', '9800000000', '$2y$10$e0NRtQHChZz4H3MXqX0F9eSH8g/hLDBv2qvG4i6SBlNRJXpUFEli.', 'admin', '2025-03-02 17:13:44'),
-(2, 'Prasanga Pokharels', 'bhawana@gmail.com', '9800000001', '$2y$10$y.eBTA5amXz0AujGvZlcTuMzN5GtX.f4tYUZ2fiwnUxbN2wvUGrQC', 'user', '2025-03-02 18:05:46'),
-(3, 'Jolie Potts', 'movie@gmail.com', '9765470926', '$2y$10$w/hA7ahu4O/34TTSU/cHOOarOC.FslZsIKaT3V37qUD9T.nzmbmvi', 'user', '2025-03-08 06:49:45');
+(2, 'Prasanga Pokharels', 'prasanga@gmail.com', '9765470926', '$2y$10$y.eBTA5amXz0AujGvZlcTuMzN5GtX.f4tYUZ2fiwnUxbN2wvUGrQC', 'user', '2025-03-02 18:05:46'),
+(3, 'Jolie Potts', 'movie@gmail.com', '9765470927', '$2y$10$w/hA7ahu4O/34TTSU/cHOOarOC.FslZsIKaT3V37qUD9T.nzmbmvi', 'user', '2025-03-08 06:49:45');
 
 --
 -- Indexes for dumped tables
@@ -828,7 +1009,9 @@ ALTER TABLE `payment_logs`
 --
 ALTER TABLE `seats`
   ADD PRIMARY KEY (`seat_id`),
-  ADD KEY `show_id` (`show_id`);
+  ADD KEY `show_id` (`show_id`),
+  ADD KEY `idx_seats_booking_show` (`booking_id`,`show_id`),
+  ADD KEY `idx_seats_show_status` (`show_id`,`status`);
 
 --
 -- Indexes for table `shows`
@@ -895,7 +1078,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `bookings`
 --
 ALTER TABLE `bookings`
-  MODIFY `booking_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=76;
+  MODIFY `booking_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=109;
 
 --
 -- AUTO_INCREMENT for table `branches`
@@ -919,25 +1102,25 @@ ALTER TABLE `movies`
 -- AUTO_INCREMENT for table `payment`
 --
 ALTER TABLE `payment`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
 
 --
 -- AUTO_INCREMENT for table `payment_logs`
 --
 ALTER TABLE `payment_logs`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=64;
 
 --
 -- AUTO_INCREMENT for table `seats`
 --
 ALTER TABLE `seats`
-  MODIFY `seat_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=730;
+  MODIFY `seat_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=830;
 
 --
 -- AUTO_INCREMENT for table `shows`
 --
 ALTER TABLE `shows`
-  MODIFY `show_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=437;
+  MODIFY `show_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=438;
 
 --
 -- AUTO_INCREMENT for table `support_categories`
@@ -961,7 +1144,7 @@ ALTER TABLE `support_tickets`
 -- AUTO_INCREMENT for table `temp_seat_selections`
 --
 ALTER TABLE `temp_seat_selections`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=161;
 
 --
 -- Constraints for dumped tables

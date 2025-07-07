@@ -1,7 +1,6 @@
 <?php
 include '../database/config.php';
 session_start();
-
 header('Content-Type: application/json');
 
 $show_id = $_GET['show_id'] ?? null;
@@ -19,33 +18,40 @@ try {
     ");
     $cleanup_stmt->execute();
     
+    // Get current user ID for comparison
+    $current_user_id = $_SESSION['user_id'] ?? null;
+    
     // Get all seat statuses for this show
     $seats_query = $conn->prepare("
         SELECT 
-            seat_number,
+            s.seat_number,
             CASE 
-                WHEN status IN ('booked', 'reserved') THEN status
+                WHEN s.status IN ('booked', 'reserved') THEN s.status
+                WHEN tss.seat_number IS NOT NULL AND tss.user_id != ? THEN 'temp_selected'
+                WHEN tss.seat_number IS NOT NULL AND tss.user_id = ? THEN 'user_selected'
                 ELSE 'available'
-            END as status
-        FROM seats 
-        WHERE show_id = ?
-        
-        UNION
-        
-        SELECT 
-            seat_number,
-            'temp_selected' as status
-        FROM temp_seat_selections 
-        WHERE show_id = ? AND expires_at > NOW()
-        
-        ORDER BY seat_number
+            END as status,
+            tss.user_id as temp_user_id,
+            tss.expires_at
+        FROM seats s
+        LEFT JOIN temp_seat_selections tss ON s.show_id = tss.show_id 
+            AND s.seat_number = tss.seat_number 
+            AND tss.expires_at > NOW()
+        WHERE s.show_id = ?
+        ORDER BY s.seat_number
     ");
-    $seats_query->execute([$show_id, $show_id]);
+    
+    $seats_query->execute([$current_user_id, $current_user_id, $show_id]);
     $seats = $seats_query->fetchAll(PDO::FETCH_ASSOC);
     
-    echo json_encode($seats);
+    echo json_encode([
+        'success' => true,
+        'seats' => $seats,
+        'current_user' => $current_user_id
+    ]);
     
 } catch (PDOException $e) {
+    error_log("Check seats error: " . $e->getMessage());
     echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
 }
 ?>

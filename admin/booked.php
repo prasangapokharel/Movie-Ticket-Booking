@@ -207,7 +207,7 @@
                 
                 <div class="bg-gray-900 rounded-lg p-6 stat-card">
                     <h3 class="text-gray-400 text-sm mb-1">Total Revenue</h3>
-                    <p class="text-3xl font-bold">₹<?php echo number_format($stats['total_revenue'], 2); ?></p>
+                    <p class="text-3xl font-bold">Rs<?php echo number_format($stats['total_revenue'], 2); ?></p>
                     <div class="mt-2 text-xs text-gray-500">
                         From all filtered bookings
                     </div>
@@ -297,7 +297,7 @@
                                             <div class="text-sm text-gray-400"><?php echo date('h:i A', strtotime($booking['show_time'])); ?></div>
                                         </td>
                                         <td class="px-4 py-2"><?php echo htmlspecialchars($booking['seats'] ?? 'N/A'); ?></td>
-                                        <td class="px-4 py-2">₹<?php echo number_format($booking['total_price'], 2); ?></td>
+                                        <td class="px-4 py-2">Rs<?php echo number_format($booking['total_price'], 2); ?></td>
                                         <td class="px-4 py-2">
                                             <span class="px-2 py-1 rounded-full text-xs font-medium status-<?php echo strtolower($booking['booking_status']); ?>">
                                                 <?php echo ucfirst($booking['booking_status']); ?>

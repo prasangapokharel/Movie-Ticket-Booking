@@ -264,7 +264,7 @@ try {
                             
                             <div>
                                 <label for="price" class="block text-sm font-medium text-gray-300 mb-1">
-                                    Ticket Price (₹) <span class="text-red-500">*</span>
+                                    Ticket Price (Rs) <span class="text-red-500">*</span>
                                 </label>
                                 <input 
                                     type="number" 
@@ -336,7 +336,7 @@ try {
                                                 <div class="text-xs text-gray-500"><?php echo date('h:i A', strtotime($show['show_time'])); ?></div>
                                             </td>
                                             <td class="px-4 py-3 whitespace-nowrap">
-                                                ₹<?php echo number_format($show['price'], 2); ?>
+                                                Rs<?php echo number_format($show['price'], 2); ?>
                                             </td>
                                             <td class="px-4 py-3 whitespace-nowrap">
                                                 <a href="edit_show.php?id=<?php echo $show['show_id']; ?>" class="text-blue-400 hover:text-blue-300 mr-3">

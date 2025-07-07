@@ -2,11 +2,11 @@
 include '../database/config.php';
 session_start();
 
-// BiraSMS API configuration
+// BiraSMS API configuration - UPDATED
+define('API_KEY', '3B853539856F3FD36823E959EF82ABF6');
 define('ROUTE_ID', 'SI_Alert');
-define('API_URL', 'https://user.birasms.com/api/smsapi');
-define('API_KEYS', '3B853539856F3FD36823E959EF82ABF6');
 define('CAMPAIGN', 'Default');
+define('API_URL', 'https://user.birasms.com/api/smsapi');
 
 $pidx = $_GET['pidx'] ?? '';
 $booking_id = $_GET['booking_id'] ?? '';
@@ -49,7 +49,7 @@ if ($curl_error) {
     exit();
 }
 
-// Enhanced SMS function with better error handling
+// FIXED SMS function using GET method as per BiraSMS API
 function sendSMS($phone, $message) {
     // Clean phone number - ensure it starts with 977 for Nepal
     $clean_phone = preg_replace('/[^0-9]/', '', $phone);
@@ -63,43 +63,39 @@ function sendSMS($phone, $message) {
         }
     }
     
-    $postData = array(
-        'api_key' => API_KEYS,
-        'type' => 'text',
-        'contacts' => $clean_phone,
-        'senderid' => ROUTE_ID,
-        'msg' => $message,
-        'campaign' => CAMPAIGN
-    );
+    // URL encode the message
+    $sms_text = urlencode($message);
     
-    $ch = curl_init();
-    curl_setopt_array($ch, array(
-        CURLOPT_URL => API_URL,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => http_build_query($postData),
-        CURLOPT_TIMEOUT => 30,
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_USERAGENT => 'CineBook SMS Service'
-    ));
+    // Build API URL using GET method as per BiraSMS documentation
+    $api_url = API_URL . "?key=" . API_KEY . 
+               "&campaign=" . CAMPAIGN . 
+               "&contacts=" . $clean_phone . 
+               "&routeid=" . ROUTE_ID . 
+               "&msg=" . $sms_text;
     
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $error = curl_error($ch);
-    curl_close($ch);
-    
+    error_log("SMS API URL: " . $api_url);
     error_log("SMS API Request - Phone: $clean_phone");
-    error_log("SMS API Response: " . $response);
-    error_log("SMS API HTTP Code: " . $httpCode);
     
-    if ($error) {
-        error_log("SMS API cURL Error: " . $error);
+    // Submit to server using file_get_contents (GET method)
+    $context = stream_context_create([
+        'http' => [
+            'timeout' => 30,
+            'user_agent' => 'CineBook SMS Service'
+        ]
+    ]);
+    
+    $response = @file_get_contents($api_url, false, $context);
+    
+    error_log("SMS API Response: " . ($response ?: 'No response'));
+    
+    if ($response === false) {
+        error_log("SMS API Error: Failed to send request");
         return false;
     }
     
     // Check if response indicates success
-    $responseData = json_decode($response, true);
-    if ($httpCode == 200 && isset($responseData['status']) && $responseData['status'] == 'success') {
+    // BiraSMS typically returns success message or error
+    if (stripos($response, 'success') !== false || stripos($response, 'sent') !== false) {
         return true;
     }
     
@@ -224,27 +220,30 @@ if ($status_code == 200) {
             
             $conn->commit();
             
-            // Send SMS notification after successful booking confirmation
+            // SEND SMS NOTIFICATION - TICKET PURCHASED
             if (!empty($booking['phone'])) {
                 $seats_text = !empty($selected_seats) ? implode(', ', $selected_seats) : 'N/A';
-                $show_date = date('d M Y, h:i A', strtotime($booking['show_time']));
+                $show_date = date('d M Y', strtotime($booking['show_time']));
+                $show_time = date('h:i A', strtotime($booking['show_time']));
                 $booking_code = 'CB' . str_pad($booking_id, 6, '0', STR_PAD_LEFT);
                 
-                $sms_message = "🎬 Booking Confirmed!\n";
-                $sms_message .= "Ticket: {$booking_code}\n";
+                // Create SMS message for ticket purchase
+                $sms_message = "🎬 TICKET PURCHASED!\n";
+                $sms_message .= "Booking: {$booking_code}\n";
                 $sms_message .= "Movie: {$booking['movie_title']}\n";
                 $sms_message .= "Theater: {$booking['theater_name']}\n";
+                $sms_message .= "Date: {$show_date}\n";
+                $sms_message .= "Time: {$show_time}\n";
                 $sms_message .= "Seats: {$seats_text}\n";
-                $sms_message .= "Show: {$show_date}\n";
                 $sms_message .= "Amount: Rs. " . number_format($response_data['amount'] / 100, 2) . "\n";
-                $sms_message .= "Thank you for choosing CineBook!";
+                $sms_message .= "Show this SMS at theater entrance. Thank you!";
                 
                 // Send SMS
                 $sms_result = sendSMS($booking['phone'], $sms_message);
                 
                 if ($sms_result === true) {
                     error_log("SMS sent successfully to {$booking['phone']} for booking {$booking_id}");
-                    $_SESSION['payment_success'] = "Payment successful! Your booking is confirmed. SMS confirmation sent to your phone.";
+                    $_SESSION['payment_success'] = "Payment successful! Your booking is confirmed. SMS confirmation sent to " . $booking['phone'];
                 } else {
                     error_log("SMS sending failed to {$booking['phone']} for booking {$booking_id}. Response: " . print_r($sms_result, true));
                     $_SESSION['payment_success'] = "Payment successful! Your booking is confirmed. (SMS notification failed - please check your booking details)";

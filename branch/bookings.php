@@ -311,7 +311,7 @@ try {
                                                     class="text-white hover:text-gray-300 mr-3">
                                                 <i class="fas fa-eye"></i>
                                             </button>
-                                            <?php if ($booking['booking_status'] == 'Pending'): ?>
+                                            <!-- <?php if ($booking['booking_status'] == 'Pending'): ?>
                                                 <button onclick="updateBookingStatus(<?php echo $booking['booking_id']; ?>, 'Confirmed')" 
                                                         class="text-green-400 hover:text-green-300 mr-3">
                                                     <i class="fas fa-check"></i>
@@ -320,7 +320,7 @@ try {
                                                         class="text-red-400 hover:text-red-300">
                                                     <i class="fas fa-times"></i>
                                                 </button>
-                                            <?php endif; ?>
+                                            <?php endif; ?> -->
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
