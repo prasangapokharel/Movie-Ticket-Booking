@@ -174,7 +174,7 @@ try {
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-400">Total Revenue</p>
-                            <p class="text-2xl font-semibold text-white">₹<?php echo number_format($stats['total_revenue'], 2); ?></p>
+                            <p class="text-2xl font-semibold text-white">Rs<?php echo number_format($stats['total_revenue'], 2); ?></p>
                         </div>
                     </div>
                 </div>
@@ -279,7 +279,7 @@ try {
                                             <?php endif; ?>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-medium text-white">₹<?php echo number_format($booking['total_price'], 2); ?></div>
+                                            <div class="text-sm font-medium text-white">Rs<?php echo number_format($booking['total_price'], 2); ?></div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
@@ -387,7 +387,7 @@ try {
                             <div class="space-y-1 text-sm">
                                 <div><span class="text-gray-400">Seats:</span> <span class="text-white">${booking.seat_numbers || 'N/A'}</span></div>
                                 <div><span class="text-gray-400">Total Seats:</span> <span class="text-white">${booking.total_seats}</span></div>
-                                <div><span class="text-gray-400">Total Amount:</span> <span class="text-white">₹${parseFloat(booking.total_price).toFixed(2)}</span></div>
+                                <div><span class="text-gray-400">Total Amount:</span> <span class="text-white">Rs${parseFloat(booking.total_price).toFixed(2)}</span></div>
                                 <div><span class="text-gray-400">Payment Status:</span> <span class="text-white">${booking.payment_status || 'N/A'}</span></div>
                                 <div><span class="text-gray-400">Payment Method:</span> <span class="text-white">${booking.payment_method || 'N/A'}</span></div>
                             </div>

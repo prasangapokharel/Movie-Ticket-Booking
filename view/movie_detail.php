@@ -455,7 +455,7 @@ try {
                                         <a href="booking.php?show_id=<?php echo $show['show_id']; ?>" 
                                            class="show-time-btn <?php echo $btnClass; ?> px-4 py-2 rounded-lg flex flex-col items-center text-white no-underline">
                                             <span class="font-medium"><?php echo $showTime; ?></span>
-                                            <span class="text-xs text-gray-400 mt-1">₹<?php echo number_format($show['price'], 2); ?></span>
+                                            <span class="text-xs text-gray-400 mt-1">Rs<?php echo number_format($show['price'], 2); ?></span>
                                             <?php if (!empty($show['hall_name'])): ?>
                                             <span class="text-xs text-gray-400"><?php echo htmlspecialchars($show['hall_name']); ?></span>
                                             <?php endif; ?>

@@ -164,7 +164,7 @@ try {
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-400">Today's Revenue</p>
-                            <p class="text-2xl font-semibold text-white">₹<?php echo number_format($total_today_revenue, 2); ?></p>
+                            <p class="text-2xl font-semibold text-white">Rs<?php echo number_format($total_today_revenue, 2); ?></p>
                         </div>
                     </div>
                 </div>
@@ -213,7 +213,7 @@ try {
                                         <p class="text-sm text-gray-400"><?php echo htmlspecialchars($booking['user_name']); ?></p>
                                     </div>
                                     <div class="text-right">
-                                        <p class="text-white">₹<?php echo number_format($booking['total_price'], 2); ?></p>
+                                        <p class="text-white">Rs<?php echo number_format($booking['total_price'], 2); ?></p>
                                         <p class="text-xs text-gray-400"><?php echo date('M j, H:i', strtotime($booking['created_at'])); ?></p>
                                     </div>
                                 </div>

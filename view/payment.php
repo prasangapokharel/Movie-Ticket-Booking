@@ -103,236 +103,120 @@ $show_time = date('h:i A', strtotime($booking['show_time']));
 $amount_in_paisa = $booking['total_price'] * 100;
 $purchase_order_id = 'CINE' . $booking_id . '_' . time();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'check_payment_status_db') {
+// Handle AJAX requests
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
     
-    $status_query = $conn->prepare("
-        SELECT payment_status, booking_status 
-        FROM bookings 
-        WHERE booking_id = ?
-    ");
-    $status_query->execute([$booking_id]);
-    $status_data = $status_query->fetch(PDO::FETCH_ASSOC);
-    
-    if ($status_data && $status_data['payment_status'] === 'paid') {
-        echo json_encode([
-            'success' => true,
-            'is_paid' => true,
-            'booking_status' => $status_data['booking_status']
-        ]);
-    } else {
-        echo json_encode([
-            'success' => true,
-            'is_paid' => false,
-            'booking_status' => $status_data['booking_status'] ?? 'Pending'
-        ]);
-    }
-    exit;
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'initiate_payment') {
-    header('Content-Type: application/json');
-    
-    $url = "https://dev.khalti.com/api/v2/epayment/initiate/";
-    $secret_key = "live_secret_key_68791341fdd94846a146f0457ff7b455";
-    
-    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
-    $host = $_SERVER['HTTP_HOST'];
-    $script_name = dirname($_SERVER['SCRIPT_NAME']);
-    
-    if ($host === 'localhost' || strpos($host, '127.0.0.1') !== false) {
-        $base_path = $protocol . "://" . $host;
+    if ($_POST['action'] === 'check_payment_status_db') {
+        $status_query = $conn->prepare("
+            SELECT payment_status, booking_status 
+            FROM bookings 
+            WHERE booking_id = ?
+        ");
+        $status_query->execute([$booking_id]);
+        $status_data = $status_query->fetch(PDO::FETCH_ASSOC);
         
-        if ($script_name !== '/' && $script_name !== '\\') {
-            $script_name = rtrim($script_name, '/\\');
-            $base_path .= $script_name;
-        }
-        
-        $base_url = dirname($base_path);
-    } else {
-        $base_url = $protocol . "://" . $host . $script_name;
-    }
-    
-    $base_url = rtrim($base_url, '/');
-    
-    $return_url = $base_url . "/templates/verify_khalti.php?booking_id=" . $booking_id;
-    $website_url = $base_url;
-    
-    error_log("Return URL: " . $return_url);
-    error_log("Website URL: " . $website_url);
-    
-    $data = [
-        "return_url" => $return_url,
-        "website_url" => $website_url,
-        "amount" => $amount_in_paisa,
-        "purchase_order_id" => $purchase_order_id,
-        "purchase_order_name" => "Movie Ticket: " . $booking['title'],
-        "customer_info" => [
-            "name" => $booking['user_name'] ?? "Customer",
-            "email" => $booking['user_email'] ?? "customer@example.com",
-            "phone" => $booking['user_phone'] ?? "9800000000"
-        ]
-    ];
-    
-    $ch = curl_init();
-    
-    curl_setopt_array($ch, [
-        CURLOPT_URL => $url,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => json_encode($data),
-        CURLOPT_HTTPHEADER => [
-            'Authorization: Key ' . $secret_key,
-            'Content-Type: application/json'
-        ]
-    ]);
-    
-    $response = curl_exec($ch);
-    $status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curl_error = curl_error($ch);
-    
-    curl_close($ch);
-    
-    if ($curl_error) {
-        error_log("Khalti cURL Error: " . $curl_error);
-        echo json_encode([
-            'success' => false,
-            'message' => "cURL Error: " . $curl_error
-        ]);
-        exit;
-    } else {
-        $response_data = json_decode($response, true);
-        error_log("Khalti Response: " . $response);
-        
-        if ($status_code == 200 && isset($response_data['payment_url'])) {
-            $payment_url = $response_data['payment_url'];
-            $pidx = $response_data['pidx'];
-            
-            $update_query = $conn->prepare("
-                UPDATE bookings 
-                SET payment_status = 'pending', payment_method = 'khalti', payment_id = ?
-                WHERE booking_id = ?
-            ");
-            $update_query->execute([$purchase_order_id, $booking_id]);
-            
-            $log_query = $conn->prepare("
-                INSERT INTO payment_logs 
-                (booking_id, user_id, amount, payment_method, payment_id, response_data, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, NOW())
-            ");
-            $log_query->execute([
-                $booking_id,
-                $user_id,
-                $booking['total_price'],
-                'khalti',
-                $purchase_order_id,
-                $response
-            ]);
-            
-            $_SESSION['khalti_pidx'] = $pidx;
-            $_SESSION['khalti_purchase_order_id'] = $purchase_order_id;
-            
+        if ($status_data && $status_data['payment_status'] === 'paid') {
             echo json_encode([
                 'success' => true,
-                'payment_url' => $payment_url,
-                'pidx' => $pidx
+                'is_paid' => true,
+                'booking_status' => $status_data['booking_status']
+            ]);
+        } else {
+            echo json_encode([
+                'success' => true,
+                'is_paid' => false,
+                'booking_status' => $status_data['booking_status'] ?? 'Pending'
+            ]);
+        }
+        exit;
+    }
+    
+    if ($_POST['action'] === 'initiate_payment') {
+        $url = "https://dev.khalti.com/api/v2/epayment/initiate/";
+        $secret_key = "live_secret_key_68791341fdd94846a146f0457ff7b455";
+        
+        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
+        $host = $_SERVER['HTTP_HOST'];
+        $script_name = dirname($_SERVER['SCRIPT_NAME']);
+        
+        if ($host === 'localhost' || strpos($host, '127.0.0.1') !== false) {
+            $base_path = $protocol . "://" . $host;
+            
+            if ($script_name !== '/' && $script_name !== '\\') {
+                $script_name = rtrim($script_name, '/\\');
+                $base_path .= $script_name;
+            }
+            
+            $base_url = dirname($base_path);
+        } else {
+            $base_url = $protocol . "://" . $host . $script_name;
+        }
+        
+        $base_url = rtrim($base_url, '/');
+        
+        $return_url = $base_url . "/templates/verify_khalti.php?booking_id=" . $booking_id;
+        $website_url = $base_url;
+        
+        error_log("Return URL: " . $return_url);
+        error_log("Website URL: " . $website_url);
+        
+        $data = [
+            "return_url" => $return_url,
+            "website_url" => $website_url,
+            "amount" => $amount_in_paisa,
+            "purchase_order_id" => $purchase_order_id,
+            "purchase_order_name" => "Movie Ticket: " . $booking['title'],
+            "customer_info" => [
+                "name" => $booking['user_name'] ?? "Customer",
+                "email" => $booking['user_email'] ?? "customer@example.com",
+                "phone" => $booking['user_phone'] ?? "9800000000"
+            ]
+        ];
+        
+        $ch = curl_init();
+        
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($data),
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Key ' . $secret_key,
+                'Content-Type: application/json'
+            ]
+        ]);
+        
+        $response = curl_exec($ch);
+        $status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curl_error = curl_error($ch);
+        
+        curl_close($ch);
+        
+        if ($curl_error) {
+            error_log("Khalti cURL Error: " . $curl_error);
+            echo json_encode([
+                'success' => false,
+                'message' => "cURL Error: " . $curl_error
             ]);
             exit;
         } else {
-            $error_message = "Payment initiation failed: " . ($response_data['detail'] ?? 'Unknown error');
-            error_log("Khalti Error: " . $error_message);
+            $response_data = json_decode($response, true);
+            error_log("Khalti Response: " . $response);
             
-            echo json_encode([
-                'success' => false,
-                'message' => $error_message
-            ]);
-            exit;
-        }
-    }
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'check_payment_status') {
-    header('Content-Type: application/json');
-    
-    $pidx = $_POST['pidx'] ?? '';
-    
-    if (empty($pidx)) {
-        echo json_encode([
-            'success' => false,
-            'message' => 'Missing payment ID'
-        ]);
-        exit;
-    }
-    
-    $secret_key = "live_secret_key_68791341fdd94846a146f0457ff7b455";
-    $url = "https://dev.khalti.com/api/v2/epayment/lookup/";
-    
-    $ch = curl_init();
-    
-    curl_setopt_array($ch, [
-        CURLOPT_URL => $url,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => json_encode(['pidx' => $pidx]),
-        CURLOPT_HTTPHEADER => [
-            'Authorization: Key ' . $secret_key,
-            'Content-Type: application/json'
-        ]
-    ]);
-    
-    $response = curl_exec($ch);
-    $status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curl_error = curl_error($ch);
-    
-    curl_close($ch);
-    
-    error_log("Khalti Verification Response: " . $response);
-    
-    if ($curl_error) {
-        echo json_encode([
-            'success' => false,
-            'message' => 'Verification failed: ' . $curl_error
-        ]);
-        exit;
-    }
-    
-    $response_data = json_decode($response, true);
-    
-    if ($status_code == 200) {
-        $payment_status = $response_data['status'] ?? 'Unknown';
-        
-        if ($payment_status == 'Completed') {
-            try {
-                $conn->beginTransaction();
+            if ($status_code == 200 && isset($response_data['payment_url'])) {
+                $payment_url = $response_data['payment_url'];
+                $pidx = $response_data['pidx'];
                 
                 $update_query = $conn->prepare("
-                    UPDATE bookings
-                    SET payment_status = 'paid', booking_status = 'Confirmed'
+                    UPDATE bookings 
+                    SET payment_status = 'pending', payment_method = 'khalti', payment_id = ?
                     WHERE booking_id = ?
                 ");
-                $update_query->execute([$booking_id]);
-                
-                $update_seats = $conn->prepare("
-                    UPDATE seats
-                    SET status = 'booked', booking_id = ?
-                    WHERE show_id = ? AND status = 'reserved'
-                ");
-                $update_seats->execute([$booking_id, $booking['show_id']]);
-                
-                $payment_query = $conn->prepare("
-                    INSERT INTO payment
-                    (user_id, booking_id, show_id, amount, payment_method, status, created_at)
-                    VALUES (?, ?, ?, ?, 'Khalti', 'Paid', NOW())
-                ");
-                $payment_query->execute([
-                    $user_id,
-                    $booking_id,
-                    $booking['show_id'],
-                    $booking['total_price']
-                ]);
+                $update_query->execute([$purchase_order_id, $booking_id]);
                 
                 $log_query = $conn->prepare("
-                    INSERT INTO payment_logs
+                    INSERT INTO payment_logs 
                     (booking_id, user_id, amount, payment_method, payment_id, response_data, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, NOW())
                 ");
@@ -341,44 +225,160 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     $user_id,
                     $booking['total_price'],
                     'khalti',
-                    $pidx,
+                    $purchase_order_id,
                     $response
                 ]);
                 
-                $conn->commit();
-                
-                $_SESSION['payment_success'] = "Payment successful! Your booking is now confirmed.";
+                $_SESSION['khalti_pidx'] = $pidx;
+                $_SESSION['khalti_purchase_order_id'] = $purchase_order_id;
                 
                 echo json_encode([
                     'success' => true,
-                    'status' => 'completed',
-                    'redirect' => 'booking_confirmation.php?booking_id=' . $booking_id
+                    'payment_url' => $payment_url,
+                    'pidx' => $pidx
                 ]);
-            } catch (Exception $e) {
-                $conn->rollBack();
-                error_log("Database error in payment status check: " . $e->getMessage());
+                exit;
+            } else {
+                $error_message = "Payment initiation failed: " . ($response_data['detail'] ?? 'Unknown error');
+                error_log("Khalti Error: " . $error_message);
                 
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Payment was successful, but there was an error updating your booking.'
+                    'message' => $error_message
+                ]);
+                exit;
+            }
+        }
+    }
+    
+    if ($_POST['action'] === 'check_payment_status') {
+        $pidx = $_POST['pidx'] ?? '';
+        
+        if (empty($pidx)) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Missing payment ID'
+            ]);
+            exit;
+        }
+        
+        $secret_key = "live_secret_key_68791341fdd94846a146f0457ff7b455";
+        $url = "https://dev.khalti.com/api/v2/epayment/lookup/";
+        
+        $ch = curl_init();
+        
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode(['pidx' => $pidx]),
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Key ' . $secret_key,
+                'Content-Type: application/json'
+            ]
+        ]);
+        
+        $response = curl_exec($ch);
+        $status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curl_error = curl_error($ch);
+        
+        curl_close($ch);
+        
+        error_log("Khalti Verification Response: " . $response);
+        
+        if ($curl_error) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Verification failed: ' . $curl_error
+            ]);
+            exit;
+        }
+        
+        $response_data = json_decode($response, true);
+        
+        if ($status_code == 200) {
+            $payment_status = $response_data['status'] ?? 'Unknown';
+            
+            if ($payment_status == 'Completed') {
+                try {
+                    $conn->beginTransaction();
+                    
+                    $update_query = $conn->prepare("
+                        UPDATE bookings
+                        SET payment_status = 'paid', booking_status = 'Confirmed'
+                        WHERE booking_id = ?
+                    ");
+                    $update_query->execute([$booking_id]);
+                    
+                    $update_seats = $conn->prepare("
+                        UPDATE seats
+                        SET status = 'booked', booking_id = ?
+                        WHERE show_id = ? AND status = 'reserved'
+                    ");
+                    $update_seats->execute([$booking_id, $booking['show_id']]);
+                    
+                    $payment_query = $conn->prepare("
+                        INSERT INTO payment
+                        (user_id, booking_id, show_id, amount, payment_method, status, created_at)
+                        VALUES (?, ?, ?, ?, 'Khalti', 'Paid', NOW())
+                    ");
+                    $payment_query->execute([
+                        $user_id,
+                        $booking_id,
+                        $booking['show_id'],
+                        $booking['total_price']
+                    ]);
+                    
+                    $log_query = $conn->prepare("
+                        INSERT INTO payment_logs
+                        (booking_id, user_id, amount, payment_method, payment_id, response_data, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, NOW())
+                    ");
+                    $log_query->execute([
+                        $booking_id,
+                        $user_id,
+                        $booking['total_price'],
+                        'khalti',
+                        $pidx,
+                        $response
+                    ]);
+                    
+                    $conn->commit();
+                    
+                    $_SESSION['payment_success'] = "Payment successful! Your booking is now confirmed.";
+                    
+                    echo json_encode([
+                        'success' => true,
+                        'status' => 'completed',
+                        'redirect' => 'booking_confirmation.php?booking_id=' . $booking_id
+                    ]);
+                } catch (Exception $e) {
+                    $conn->rollBack();
+                    error_log("Database error in payment status check: " . $e->getMessage());
+                    
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Payment was successful, but there was an error updating your booking.'
+                    ]);
+                }
+            } else {
+                echo json_encode([
+                    'success' => true,
+                    'status' => strtolower($payment_status)
                 ]);
             }
         } else {
             echo json_encode([
-                'success' => true,
-                'status' => strtolower($payment_status)
+                'success' => false,
+                'message' => 'Failed to verify payment status'
             ]);
         }
-    } else {
-        echo json_encode([
-            'success' => false,
-            'message' => 'Failed to verify payment status'
-        ]);
+        
+        exit;
     }
-    
-    exit;
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -387,7 +387,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <title>Payment - CineBook</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body{font-family:'Inter',sans-serif;background:#0f172a;color:#f8fafc;min-height:100vh}.payment-card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:1.5rem}.divider{height:1px;background:#334155;margin:12px 0}.ticket-info{background:#1e293b;padding:10px;border-radius:8px;margin-bottom:8px;border:1px solid #334155}.btn{display:inline-block;padding:10px 16px;border-radius:8px;font-weight:500;text-align:center;cursor:pointer;transition:background-color .2s}.btn-primary{background:#b91c1c;color:#fff}.btn-primary:hover{background:#991b1b}.btn-khalti{background:#5C2D91;color:#fff}.btn-khalti:hover{background:#4A2275}.payment-method{border:2px solid transparent;cursor:pointer}.payment-method.selected{border-color:#5C2D91;background:rgba(92,45,145,.1)}.loading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,.9);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:9999;opacity:0;visibility:hidden;transition:opacity .3s ease}.loading-overlay.active{opacity:1;visibility:visible}.spinner{width:50px;height:50px;border:5px solid rgba(255,255,255,.1);border-radius:50%;border-top-color:#5C2D91;animation:spin 1s linear infinite;margin-bottom:1rem}@keyframes spin{to{transform:rotate(360deg)}}.order-paid-banner{background:#10b981;color:#fff;padding:1rem;border-radius:8px;margin-bottom:1rem;display:flex;align-items:center;justify-content:center;font-weight:500}.order-paid-banner svg{margin-right:.5rem}
+        body{font-family:'Inter',sans-serif;background:#0f172a;color:#f8fafc;min-height:100vh}
+        .payment-card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:1.5rem}
+        .divider{height:1px;background:#334155;margin:12px 0}
+        .ticket-info{background:#1e293b;padding:10px;border-radius:8px;margin-bottom:8px;border:1px solid #334155}
+        .btn{display:inline-block;padding:10px 16px;border-radius:8px;font-weight:500;text-align:center;cursor:pointer;transition:background-color .2s}
+        .btn-primary{background:#b91c1c;color:#fff}
+        .btn-primary:hover{background:#991b1b}
+        .btn-khalti{background:#5C2D91;color:#fff}
+        .btn-khalti:hover{background:#4A2275}
+        .payment-method{border:2px solid transparent;cursor:pointer}
+        .payment-method.selected{border-color:#5C2D91;background:rgba(92,45,145,.1)}
+        .loading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,.9);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:9999;opacity:0;visibility:hidden;transition:opacity .3s ease}
+        .loading-overlay.active{opacity:1;visibility:visible}
+        .spinner{width:50px;height:50px;border:5px solid rgba(255,255,255,.1);border-radius:50%;border-top-color:#5C2D91;animation:spin 1s linear infinite;margin-bottom:1rem}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .order-paid-banner{background:#10b981;color:#fff;padding:1rem;border-radius:8px;margin-bottom:1rem;display:flex;align-items:center;justify-content:center;font-weight:500}
+        .order-paid-banner svg{margin-right:.5rem}
     </style>
 </head>
 <body>

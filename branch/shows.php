@@ -337,7 +337,7 @@ try {
                         </div>
                         
                         <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-1">Ticket Price (₹) *</label>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Ticket Price (Rs) *</label>
                             <input type="number" name="price" required min="1" step="0.01"
                                    value="<?php echo isset($_POST['price']) ? htmlspecialchars($_POST['price']) : ''; ?>"
                                    class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:border-white">
@@ -442,7 +442,7 @@ try {
                                             <div class="text-xs text-gray-400"><?php echo date('h:i A', strtotime($show['show_time'])); ?></div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm text-white">₹<?php echo number_format($show['price'], 2); ?></div>
+                                            <div class="text-sm text-white">Rs<?php echo number_format($show['price'], 2); ?></div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="text-sm text-white"><?php echo $show['booked_seats']; ?>/<?php echo $show['total_seats']; ?></div>

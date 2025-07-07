@@ -49,12 +49,24 @@ if ($curl_error) {
     exit();
 }
 
-// Function to send SMS using BiraSMS
+// Enhanced SMS function with better error handling
 function sendSMS($phone, $message) {
+    // Clean phone number - ensure it starts with 977 for Nepal
+    $clean_phone = preg_replace('/[^0-9]/', '', $phone);
+    
+    // Add country code if not present
+    if (!str_starts_with($clean_phone, '977')) {
+        if (str_starts_with($clean_phone, '9')) {
+            $clean_phone = '977' . $clean_phone;
+        } else {
+            $clean_phone = '9779' . $clean_phone;
+        }
+    }
+    
     $postData = array(
         'api_key' => API_KEYS,
         'type' => 'text',
-        'contacts' => $phone,
+        'contacts' => $clean_phone,
         'senderid' => ROUTE_ID,
         'msg' => $message,
         'campaign' => CAMPAIGN
@@ -67,15 +79,29 @@ function sendSMS($phone, $message) {
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => http_build_query($postData),
         CURLOPT_TIMEOUT => 30,
-        CURLOPT_SSL_VERIFYPEER => false
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_USERAGENT => 'CineBook SMS Service'
     ));
     
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
     curl_close($ch);
     
+    error_log("SMS API Request - Phone: $clean_phone");
     error_log("SMS API Response: " . $response);
     error_log("SMS API HTTP Code: " . $httpCode);
+    
+    if ($error) {
+        error_log("SMS API cURL Error: " . $error);
+        return false;
+    }
+    
+    // Check if response indicates success
+    $responseData = json_decode($response, true);
+    if ($httpCode == 200 && isset($responseData['status']) && $responseData['status'] == 'success') {
+        return true;
+    }
     
     return $response;
 }
@@ -83,14 +109,15 @@ function sendSMS($phone, $message) {
 if ($status_code == 200) {
     $response_data = json_decode($response, true);
     $payment_status = $response_data['status'] ?? 'Unknown';
-        
+    
     if ($payment_status == 'Completed') {
         try {
             $conn->beginTransaction();
-                        
+            
+            // Get booking details with user info
             $booking_query = $conn->prepare("
-                SELECT b.*, u.user_id, u.name, u.phone, s.show_id, m.title as movie_title, 
-                       t.name as theater_name, s.show_time
+                SELECT b.*, u.user_id, u.name, u.phone, s.show_id, m.title as movie_title,
+                        t.name as theater_name, s.show_time
                 FROM bookings b
                 JOIN users u ON b.user_id = u.user_id
                 JOIN shows s ON b.show_id = s.show_id
@@ -100,11 +127,11 @@ if ($status_code == 200) {
             ");
             $booking_query->execute([$booking_id]);
             $booking = $booking_query->fetch(PDO::FETCH_ASSOC);
-                        
+            
             if (!$booking) {
                 throw new Exception("Booking not found");
             }
-                        
+            
             // Get selected seats from session or temp table
             $selected_seats = [];
             if (isset($_SESSION['selected_seats']) && !empty($_SESSION['selected_seats'])) {
@@ -119,14 +146,15 @@ if ($status_code == 200) {
                 $temp_seats_query->execute([$booking['user_id'], $booking['show_id']]);
                 $selected_seats = $temp_seats_query->fetchAll(PDO::FETCH_COLUMN);
             }
-                        
+            
+            // Update booking status
             $update_booking = $conn->prepare("
                 UPDATE bookings
                 SET payment_status = 'paid', booking_status = 'Confirmed', payment_id = ?
                 WHERE booking_id = ?
             ");
             $update_booking->execute([$pidx, $booking_id]);
-                        
+            
             // Update or insert seats with booking_id
             if (!empty($selected_seats)) {
                 foreach ($selected_seats as $seat) {
@@ -136,7 +164,7 @@ if ($status_code == 200) {
                         WHERE show_id = ? AND seat_number = ?
                     ");
                     $check_seat->execute([$booking['show_id'], $seat]);
-                                        
+                    
                     if ($check_seat->rowCount() > 0) {
                         // Update existing seat
                         $update_seat = $conn->prepare("
@@ -145,6 +173,7 @@ if ($status_code == 200) {
                             WHERE show_id = ? AND seat_number = ?
                         ");
                         $update_seat->execute([$booking_id, $booking['show_id'], $seat]);
+                        error_log("Updated seat $seat for booking $booking_id");
                     } else {
                         // Insert new seat record
                         $insert_seat = $conn->prepare("
@@ -152,10 +181,12 @@ if ($status_code == 200) {
                             VALUES (?, ?, 'booked', ?, NOW())
                         ");
                         $insert_seat->execute([$booking['show_id'], $seat, $booking_id]);
+                        error_log("Inserted new seat $seat for booking $booking_id");
                     }
                 }
             }
-                        
+            
+            // Insert payment record
             $payment_query = $conn->prepare("
                 INSERT INTO payment
                 (user_id, booking_id, show_id, amount, payment_method, status, created_at)
@@ -168,7 +199,8 @@ if ($status_code == 200) {
                 $booking['show_id'],
                 $response_data['amount'] / 100
             ]);
-                        
+            
+            // Log payment
             $log_query = $conn->prepare("
                 INSERT INTO payment_logs
                 (booking_id, user_id, amount, payment_method, payment_id, response_data, created_at)
@@ -182,43 +214,49 @@ if ($status_code == 200) {
                 $pidx,
                 $response
             ]);
-                        
+            
+            // Clean up temp selections
             $delete_temp = $conn->prepare("
                 DELETE FROM temp_seat_selections
                 WHERE user_id = ? AND show_id = ?
             ");
             $delete_temp->execute([$booking['user_id'], $booking['show_id']]);
-                        
+            
             $conn->commit();
             
             // Send SMS notification after successful booking confirmation
             if (!empty($booking['phone'])) {
                 $seats_text = !empty($selected_seats) ? implode(', ', $selected_seats) : 'N/A';
                 $show_date = date('d M Y, h:i A', strtotime($booking['show_time']));
+                $booking_code = 'CB' . str_pad($booking_id, 6, '0', STR_PAD_LEFT);
                 
-                $sms_message = "Booking Confirmed! 
-Ticket #: {$booking_id}
-Movie: {$booking['movie_title']}
-Theater: {$booking['theater_name']}
-Seats: {$seats_text}
-Show: {$show_date}
-Amount: Rs. " . number_format($response_data['amount'] / 100, 2) . "
-Thank you for choosing us!";
-                
-                // Clean phone number (remove any non-numeric characters except +)
-                $clean_phone = preg_replace('/[^0-9+]/', '', $booking['phone']);
+                $sms_message = "🎬 Booking Confirmed!\n";
+                $sms_message .= "Ticket: {$booking_code}\n";
+                $sms_message .= "Movie: {$booking['movie_title']}\n";
+                $sms_message .= "Theater: {$booking['theater_name']}\n";
+                $sms_message .= "Seats: {$seats_text}\n";
+                $sms_message .= "Show: {$show_date}\n";
+                $sms_message .= "Amount: Rs. " . number_format($response_data['amount'] / 100, 2) . "\n";
+                $sms_message .= "Thank you for choosing CineBook!";
                 
                 // Send SMS
-                $sms_response = sendSMS($clean_phone, $sms_message);
+                $sms_result = sendSMS($booking['phone'], $sms_message);
                 
-                // Log SMS sending attempt
-                error_log("SMS sent to {$clean_phone} for booking {$booking_id}. Response: " . $sms_response);
+                if ($sms_result === true) {
+                    error_log("SMS sent successfully to {$booking['phone']} for booking {$booking_id}");
+                    $_SESSION['payment_success'] = "Payment successful! Your booking is confirmed. SMS confirmation sent to your phone.";
+                } else {
+                    error_log("SMS sending failed to {$booking['phone']} for booking {$booking_id}. Response: " . print_r($sms_result, true));
+                    $_SESSION['payment_success'] = "Payment successful! Your booking is confirmed. (SMS notification failed - please check your booking details)";
+                }
+            } else {
+                $_SESSION['payment_success'] = "Payment successful! Your booking is confirmed.";
             }
-                        
-            $_SESSION['payment_success'] = "Payment successful! Your booking is now confirmed. SMS notification sent to your registered phone number.";
+            
+            // Ensure redirect to booking_confirmation.php
             header("Location: booking_confirmation.php?booking_id=" . $booking_id);
             exit();
-                    
+            
         } catch (Exception $e) {
             $conn->rollBack();
             error_log("Payment verification error: " . $e->getMessage());
@@ -232,7 +270,7 @@ Thank you for choosing us!";
             'Failed' => 'Payment failed. Please try again or use a different payment method.',
             default => 'Payment status: ' . $payment_status
         };
-                
+        
         $_SESSION['alert'] = ['type' => 'warning', 'message' => $status_message];
         header("Location: payment.php?booking_id=" . $booking_id);
         exit();

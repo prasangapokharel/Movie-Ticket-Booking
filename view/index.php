@@ -210,7 +210,7 @@ include '../model/Index.php';
                             <div class="flex items-center justify-between">
                                 <div class="text-sm text-gray-400">
                                     <span class="text-red-400 font-medium">From </span>
-                                    <span class="text-lg font-semibold text-white">₹<?php 
+                                    <span class="text-lg font-semibold text-white">Rs<?php 
                                         $prices = array_column($movie['shows'], 'price');
                                         echo !empty($prices) ? number_format(min($prices), 2) : '0.00'; 
                                     ?></span>

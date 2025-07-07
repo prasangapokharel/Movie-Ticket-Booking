@@ -24,12 +24,14 @@ try {
                m.movie_id, m.title, m.poster_url, m.language, m.genre, m.duration,
                s.show_time, s.price,
                t.name as theater_name, t.location,
-               br.name as branch_name
+               br.branch_name as branch_name,
+               u.name as user_name, u.phone as user_phone
         FROM bookings b
         JOIN shows s ON b.show_id = s.show_id
         JOIN movies m ON s.movie_id = m.movie_id
         LEFT JOIN theaters t ON s.theater_id = t.theater_id
         LEFT JOIN branches br ON t.branch_id = br.branch_id
+        JOIN users u ON b.user_id = u.user_id
         WHERE b.booking_id = ? AND b.user_id = ?
     ");
     $booking_query->execute([$booking_id, $user_id]);
@@ -45,22 +47,63 @@ try {
         exit();
     }
 
-    // Get seats for this booking
+    // Get seats for this booking - FIXED QUERY
     $seats_query = $conn->prepare("
         SELECT seat_number 
         FROM seats 
-        WHERE show_id = ? AND booking_id = ? AND status = 'booked'
+        WHERE show_id = ? AND booking_id = ? AND status IN ('booked', 'reserved')
         ORDER BY seat_number
     ");
     $seats_query->execute([$booking['show_id'], $booking_id]);
     $seats = $seats_query->fetchAll(PDO::FETCH_COLUMN);
     
-    // If no seats found with booking_id, try to find by session data
-    if (empty($seats) && isset($_SESSION['selected_seats'])) {
-        $seats = $_SESSION['selected_seats'];
+    // If no seats found with booking_id, try alternative methods
+    if (empty($seats)) {
+        // Try to get from session if still available
+        if (isset($_SESSION['selected_seats']) && !empty($_SESSION['selected_seats'])) {
+            $seats = $_SESSION['selected_seats'];
+            
+            // Update seats table with booking_id if payment is confirmed
+            if ($booking['payment_status'] === 'paid' && $booking['booking_status'] === 'Confirmed') {
+                foreach ($seats as $seat) {
+                    $update_seat = $conn->prepare("
+                        UPDATE seats 
+                        SET booking_id = ?, status = 'booked'
+                        WHERE show_id = ? AND seat_number = ?
+                    ");
+                    $update_seat->execute([$booking_id, $booking['show_id'], $seat]);
+                }
+            }
+        } else {
+            // Try to get from temp_seat_selections
+            $temp_seats_query = $conn->prepare("
+                SELECT seat_number 
+                FROM temp_seat_selections 
+                WHERE user_id = ? AND show_id = ?
+                ORDER BY seat_number
+            ");
+            $temp_seats_query->execute([$user_id, $booking['show_id']]);
+            $temp_seats = $temp_seats_query->fetchAll(PDO::FETCH_COLUMN);
+            
+            if (!empty($temp_seats)) {
+                $seats = $temp_seats;
+                
+                // Update seats table with booking_id if payment is confirmed
+                if ($booking['payment_status'] === 'paid' && $booking['booking_status'] === 'Confirmed') {
+                    foreach ($seats as $seat) {
+                        $update_seat = $conn->prepare("
+                            UPDATE seats 
+                            SET booking_id = ?, status = 'booked'
+                            WHERE show_id = ? AND seat_number = ?
+                        ");
+                        $update_seat->execute([$booking_id, $booking['show_id'], $seat]);
+                    }
+                }
+            }
+        }
     }
     
-    $seats_text = !empty($seats) ? implode(', ', $seats) : 'N/A';
+    $seats_text = !empty($seats) ? implode(', ', $seats) : 'Not Available';
 
     // Format date & time
     $show_date = date('D, d M Y', strtotime($booking['show_time']));
@@ -75,7 +118,7 @@ try {
         'message' => 'Database error: ' . $e->getMessage()
     ];
     header("Location: index.php");
-    exit;
+    exit();
 }
 ?>
 
@@ -85,8 +128,9 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Booking Confirmation - CineBook</title>
-    <script src="../assets/js/talwind.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -96,59 +140,75 @@ try {
         }
         
         .confirmation-card {
-            background: linear-gradient(to bottom right, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9));
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
             padding: 2rem;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+            margin-bottom: 1.5rem;
         }
         
         .success-icon {
-            background: linear-gradient(135deg, #10b981, #059669);
             width: 80px;
             height: 80px;
+            background: #10b981;
             border-radius: 50%;
             display: flex;
-            justify-content: center;
             align-items: center;
-            margin: 0 auto 1.5rem;
-            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+            justify-content: center;
+            margin: 0 auto 1rem;
         }
         
-        .ticket-section {
-            background-color: rgba(30, 41, 59, 0.5);
-            border: 2px dashed rgba(255, 255, 255, 0.2);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin: 1.5rem 0;
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .status-confirmed {
+            background-color: #10b981;
+            color: #ffffff;
+        }
+        
+        .status-paid {
+            background-color: #3b82f6;
+            color: #ffffff;
         }
         
         .info-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin: 1rem 0;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
         }
         
         .info-item {
-            background-color: rgba(15, 23, 42, 0.6);
+            background: #334155;
             padding: 1rem;
             border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         
         .info-label {
             font-size: 0.75rem;
             color: #94a3b8;
+            margin-bottom: 0.25rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            margin-bottom: 0.25rem;
         }
         
         .info-value {
-            font-weight: 600;
+            font-size: 0.875rem;
+            font-weight: 500;
             color: #f8fafc;
+        }
+        
+        .ticket-section {
+            background: #334155;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
         }
         
         .btn {
@@ -159,69 +219,54 @@ try {
             border-radius: 8px;
             font-weight: 500;
             text-decoration: none;
-            transition: all 0.3s ease;
-            cursor: pointer;
+            transition: all 0.2s;
             border: none;
+            cursor: pointer;
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, #ef4444, #b91c1c);
-            color: white;
+            background-color: #dc2626;
+            color: #ffffff;
         }
         
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(185, 28, 28, 0.3);
+            background-color: #b91c1c;
         }
         
         .btn-secondary {
-            background-color: rgba(71, 85, 105, 0.8);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background-color: #475569;
+            color: #ffffff;
         }
         
         .btn-secondary:hover {
-            background-color: rgba(51, 65, 85, 0.9);
+            background-color: #334155;
         }
         
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.5rem 1rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        
-        .status-confirmed {
-            background-color: rgba(16, 185, 129, 0.2);
-            color: #6ee7b7;
-            border: 1px solid rgba(16, 185, 129, 0.3);
-        }
-        
-        .qr-code {
-            background-color: white;
-            padding: 1rem;
-            border-radius: 8px;
-            display: inline-block;
-            margin: 1rem auto;
+        .print-hide {
+            display: block;
         }
         
         @media print {
+            .print-hide {
+                display: none !important;
+            }
+            
             body {
                 background: white;
                 color: black;
             }
+            
             .confirmation-card {
                 background: white;
                 border: 1px solid #ccc;
                 box-shadow: none;
             }
-            .btn, .print-hide {
-                display: none !important;
-            }
+        }
+        
+        #qrcode {
+            display: flex;
+            justify-content: center;
+            margin: 1rem 0;
         }
     </style>
 </head>
@@ -249,12 +294,18 @@ try {
                         <h2 class="text-2xl font-bold mb-2"><?php echo htmlspecialchars($booking['title']); ?></h2>
                         <p class="text-gray-400">Booking ID: <?php echo $booking_code; ?></p>
                     </div>
-                    <div class="mt-4 md:mt-0">
+                    <div class="mt-4 md:mt-0 flex gap-2">
                         <span class="status-badge status-confirmed">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                             </svg>
-                            Confirmed
+                            <?php echo ucfirst($booking['booking_status']); ?>
+                        </span>
+                        <span class="status-badge status-paid">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                            </svg>
+                            <?php echo ucfirst($booking['payment_status']); ?>
                         </span>
                     </div>
                 </div>
@@ -263,8 +314,8 @@ try {
                 <div class="flex flex-col lg:flex-row gap-6 mb-6">
                     <?php if (!empty($booking['poster_url'])): ?>
                     <div class="w-full lg:w-48 h-72 flex-shrink-0">
-                        <img src="<?php echo htmlspecialchars($booking['poster_url']); ?>" 
-                             alt="<?php echo htmlspecialchars($booking['title']); ?>" 
+                        <img src="<?php echo htmlspecialchars($booking['poster_url']); ?>"
+                             alt="<?php echo htmlspecialchars($booking['title']); ?>"
                              class="w-full h-full object-cover rounded-lg">
                     </div>
                     <?php endif; ?>
@@ -309,13 +360,8 @@ try {
                     <div class="text-center">
                         <h3 class="text-lg font-semibold mb-4">Your E-Ticket</h3>
                         
-                        <!-- QR Code Placeholder -->
-                        <div class="qr-code">
-                            <div class="w-32 h-32 bg-gray-200 flex items-center justify-center text-gray-600 text-xs">
-                                QR Code<br>
-                                <?php echo $booking_code; ?>
-                            </div>
-                        </div>
+                        <!-- QR Code -->
+                        <div id="qrcode"></div>
                         
                         <p class="text-sm text-gray-400 mt-2">
                             Show this QR code at the theater entrance
@@ -349,7 +395,7 @@ try {
             </div>
             
             <!-- Important Information -->
-            <div class="confirmation-card mt-6 print-hide">
+            <div class="confirmation-card print-hide">
                 <h3 class="text-lg font-semibold mb-4">Important Information</h3>
                 <ul class="space-y-2 text-sm text-gray-300">
                     <li class="flex items-start">
@@ -382,5 +428,38 @@ try {
     </div>
     
     <?php include '../includes/footer.php'; ?>
+    
+    <script>
+        // Generate QR Code
+        document.addEventListener('DOMContentLoaded', function() {
+            const qrData = {
+                bookingId: '<?php echo $booking_code; ?>',
+                movie: '<?php echo addslashes($booking['title']); ?>',
+                theater: '<?php echo addslashes($booking['theater_name']); ?>',
+                date: '<?php echo $show_date; ?>',
+                time: '<?php echo $show_time; ?>',
+                seats: '<?php echo $seats_text; ?>',
+                amount: '₨<?php echo number_format($booking['total_price'], 2); ?>'
+            };
+            
+            const qrString = `Booking: ${qrData.bookingId}\nMovie: ${qrData.movie}\nTheater: ${qrData.theater}\nDate: ${qrData.date}\nTime: ${qrData.time}\nSeats: ${qrData.seats}\nAmount: ${qrData.amount}`;
+            
+            QRCode.toCanvas(document.createElement('canvas'), qrString, {
+                width: 200,
+                height: 200,
+                color: {
+                    dark: '#000000',
+                    light: '#FFFFFF'
+                }
+            }, function (error, canvas) {
+                if (error) {
+                    console.error('QR Code generation failed:', error);
+                    document.getElementById('qrcode').innerHTML = '<div class="w-32 h-32 bg-gray-200 flex items-center justify-center text-gray-600 text-xs">QR Code<br><?php echo $booking_code; ?></div>';
+                } else {
+                    document.getElementById('qrcode').appendChild(canvas);
+                }
+            });
+        });
+    </script>
 </body>
 </html>
