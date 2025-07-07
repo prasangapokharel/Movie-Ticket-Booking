@@ -13,8 +13,9 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 $action = $_POST['action'] ?? '';
 
-// Khalti configuration
+// Khalti configuration - PRODUCTION KEYS
 $secret_key = "live_secret_key_68791341fdd94846a146f0457ff7b455";
+$khalti_api_url = "https://khalti.com/api/v2/epayment/"; // Production URL
 
 if ($action === 'initiate_payment') {
     $booking_id = $_POST['booking_id'] ?? '';
@@ -33,13 +34,32 @@ if ($action === 'initiate_payment') {
         JOIN movies m ON s.movie_id = m.movie_id
         LEFT JOIN theaters t ON s.theater_id = t.theater_id
         JOIN users u ON b.user_id = u.user_id
-        WHERE b.booking_id = ? AND b.user_id = ?
+        WHERE b.booking_id = ? AND b.user_id = ? AND b.booking_status = 'Pending'
     ");
     $booking_query->execute([$booking_id, $user_id]);
     $booking = $booking_query->fetch(PDO::FETCH_ASSOC);
     
     if (!$booking) {
-        echo json_encode(['success' => false, 'message' => 'Booking not found']);
+        echo json_encode(['success' => false, 'message' => 'Booking not found or already processed']);
+        exit();
+    }
+    
+    // Check if temp seats are still valid
+    $temp_seats_query = $conn->prepare("
+        SELECT seat_number FROM temp_seat_selections 
+        WHERE user_id = ? AND show_id = ? AND expires_at > NOW()
+    ");
+    $temp_seats_query->execute([$user_id, $booking['show_id']]);
+    $temp_seats = $temp_seats_query->fetchAll(PDO::FETCH_COLUMN);
+    
+    if (empty($temp_seats)) {
+        // Seats expired, cancel booking
+        $cancel_booking = $conn->prepare("
+            UPDATE bookings SET booking_status = 'Cancelled' WHERE booking_id = ?
+        ");
+        $cancel_booking->execute([$booking_id]);
+        
+        echo json_encode(['success' => false, 'message' => 'Seat selection expired. Please select seats again.']);
         exit();
     }
     
@@ -73,19 +93,34 @@ if ($action === 'initiate_payment') {
     // Make API call to Khalti
     $ch = curl_init();
     curl_setopt_array($ch, [
-        CURLOPT_URL => "https://dev.khalti.com/api/v2/epayment/initiate/",
+        CURLOPT_URL => $khalti_api_url . "initiate/",
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => json_encode($data),
         CURLOPT_HTTPHEADER => [
             'Authorization: Key ' . $secret_key,
             'Content-Type: application/json'
-        ]
+        ],
+        CURLOPT_TIMEOUT => 30,
+        CURLOPT_SSL_VERIFYPEER => true
     ]);
     
     $response = curl_exec($ch);
     $status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curl_error = curl_error($ch);
     curl_close($ch);
+    
+    // Log the request and response for debugging
+    error_log("Khalti Payment Initiation - Booking ID: $booking_id");
+    error_log("Request Data: " . json_encode($data));
+    error_log("Response: " . $response);
+    error_log("Status Code: " . $status_code);
+    
+    if ($curl_error) {
+        error_log("Khalti cURL Error: " . $curl_error);
+        echo json_encode(['success' => false, 'message' => 'Payment service unavailable']);
+        exit();
+    }
     
     if ($status_code == 200) {
         $response_data = json_decode($response, true);
@@ -93,10 +128,24 @@ if ($action === 'initiate_payment') {
             // Update booking with payment info
             $update_query = $conn->prepare("
                 UPDATE bookings 
-                SET payment_status = 'pending', payment_method = 'khalti', payment_id = ? 
+                SET payment_method = 'khalti', payment_id = ? 
                 WHERE booking_id = ?
             ");
             $update_query->execute([$purchase_order_id, $booking_id]);
+            
+            // Log payment initiation
+            $log_query = $conn->prepare("
+                INSERT INTO payment_logs 
+                (booking_id, user_id, amount, payment_method, payment_id, response_data, created_at) 
+                VALUES (?, ?, ?, 'khalti', ?, ?, NOW())
+            ");
+            $log_query->execute([
+                $booking_id,
+                $user_id,
+                $booking['total_price'],
+                $purchase_order_id,
+                $response
+            ]);
             
             echo json_encode([
                 'success' => true,
@@ -107,7 +156,9 @@ if ($action === 'initiate_payment') {
             echo json_encode(['success' => false, 'message' => 'Failed to get payment URL']);
         }
     } else {
-        echo json_encode(['success' => false, 'message' => 'Payment initiation failed']);
+        $error_response = json_decode($response, true);
+        $error_message = $error_response['detail'] ?? 'Payment initiation failed';
+        echo json_encode(['success' => false, 'message' => $error_message]);
     }
     
 } elseif ($action === 'check_payment_status') {
@@ -122,36 +173,60 @@ if ($action === 'initiate_payment') {
     // Verify payment with Khalti
     $ch = curl_init();
     curl_setopt_array($ch, [
-        CURLOPT_URL => "https://dev.khalti.com/api/v2/epayment/lookup/",
+        CURLOPT_URL => $khalti_api_url . "lookup/",
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => json_encode(['pidx' => $pidx]),
         CURLOPT_HTTPHEADER => [
             'Authorization: Key ' . $secret_key,
             'Content-Type: application/json'
-        ]
+        ],
+        CURLOPT_TIMEOUT => 30,
+        CURLOPT_SSL_VERIFYPEER => true
     ]);
     
     $response = curl_exec($ch);
     $status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curl_error = curl_error($ch);
     curl_close($ch);
+    
+    error_log("Khalti Payment Status Check - PIDX: $pidx");
+    error_log("Response: " . $response);
+    error_log("Status Code: " . $status_code);
+    
+    if ($curl_error) {
+        echo json_encode(['success' => false, 'message' => 'Payment verification failed']);
+        exit();
+    }
     
     if ($status_code == 200) {
         $response_data = json_decode($response, true);
         $payment_status = $response_data['status'] ?? 'Unknown';
         
         if ($payment_status == 'Completed') {
-            // Update booking and seats
+            // ONLY NOW CONFIRM THE BOOKING AND RESERVE SEATS
             try {
                 $conn->beginTransaction();
                 
-                // Update booking status
+                // Get temp seats for this booking
+                $temp_seats_query = $conn->prepare("
+                    SELECT seat_number FROM temp_seat_selections 
+                    WHERE user_id = ? AND show_id = (SELECT show_id FROM bookings WHERE booking_id = ?)
+                ");
+                $temp_seats_query->execute([$user_id, $booking_id]);
+                $temp_seats = $temp_seats_query->fetchAll(PDO::FETCH_COLUMN);
+                
+                if (empty($temp_seats)) {
+                    throw new Exception("No seats found for this booking");
+                }
+                
+                // Update booking status to CONFIRMED
                 $update_booking = $conn->prepare("
                     UPDATE bookings 
-                    SET payment_status = 'paid', booking_status = 'Confirmed'
+                    SET payment_status = 'paid', booking_status = 'Confirmed', payment_id = ?
                     WHERE booking_id = ?
                 ");
-                $update_booking->execute([$booking_id]);
+                $update_booking->execute([$pidx, $booking_id]);
                 
                 // Get booking details for seat update
                 $booking_query = $conn->prepare("SELECT show_id FROM bookings WHERE booking_id = ?");
@@ -159,13 +234,47 @@ if ($action === 'initiate_payment') {
                 $booking = $booking_query->fetch(PDO::FETCH_ASSOC);
                 
                 if ($booking) {
-                    // Update seats from reserved to booked
-                    $update_seats = $conn->prepare("
-                        UPDATE seats 
-                        SET status = 'booked', booking_id = ? 
-                        WHERE show_id = ? AND status = 'reserved'
+                    // NOW actually book the seats
+                    foreach ($temp_seats as $seat) {
+                        // Insert or update seat as BOOKED
+                        $check_seat = $conn->prepare("
+                            SELECT seat_id FROM seats 
+                            WHERE show_id = ? AND seat_number = ?
+                        ");
+                        $check_seat->execute([$booking['show_id'], $seat]);
+                        $existing_seat = $check_seat->fetch();
+                        
+                        if ($existing_seat) {
+                            // Update existing seat
+                            $update_seat = $conn->prepare("
+                                UPDATE seats 
+                                SET status = 'booked', booking_id = ? 
+                                WHERE show_id = ? AND seat_number = ?
+                            ");
+                            $update_seat->execute([$booking_id, $booking['show_id'], $seat]);
+                        } else {
+                            // Insert new seat
+                            $insert_seat = $conn->prepare("
+                                INSERT INTO seats (show_id, seat_number, status, booking_id, created_at)
+                                VALUES (?, ?, 'booked', ?, NOW())
+                            ");
+                            $insert_seat->execute([$booking['show_id'], $seat, $booking_id]);
+                        }
+                    }
+                    
+                    // Insert payment record
+                    $payment_query = $conn->prepare("
+                        INSERT INTO payment 
+                        (user_id, booking_id, show_id, amount, payment_method, status, created_at) 
+                        VALUES (?, ?, ?, ?, 'Khalti', 'Paid', NOW())
+                        ON DUPLICATE KEY UPDATE status = 'Paid'
                     ");
-                    $update_seats->execute([$booking_id, $booking['show_id']]);
+                    $payment_query->execute([
+                        $user_id,
+                        $booking_id,
+                        $booking['show_id'],
+                        $response_data['amount'] / 100 // Convert from paisa to rupees
+                    ]);
                     
                     // Clean up temp selections
                     $delete_temp = $conn->prepare("
@@ -173,6 +282,20 @@ if ($action === 'initiate_payment') {
                         WHERE user_id = ? AND show_id = ?
                     ");
                     $delete_temp->execute([$user_id, $booking['show_id']]);
+                    
+                    // Log successful payment
+                    $log_query = $conn->prepare("
+                        INSERT INTO payment_logs 
+                        (booking_id, user_id, amount, payment_method, payment_id, response_data, created_at) 
+                        VALUES (?, ?, ?, 'khalti', ?, ?, NOW())
+                    ");
+                    $log_query->execute([
+                        $booking_id,
+                        $user_id,
+                        $response_data['amount'] / 100,
+                        $pidx,
+                        $response
+                    ]);
                 }
                 
                 $conn->commit();
@@ -180,13 +303,14 @@ if ($action === 'initiate_payment') {
                 echo json_encode([
                     'success' => true,
                     'status' => 'completed',
-                    'message' => 'Payment successful!'
+                    'message' => 'Payment successful! Your seats are now confirmed.'
                 ]);
             } catch (Exception $e) {
                 $conn->rollBack();
+                error_log("Payment completion error: " . $e->getMessage());
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Payment successful but booking update failed'
+                    'message' => 'Payment successful but booking confirmation failed'
                 ]);
             }
         } else {
@@ -196,7 +320,7 @@ if ($action === 'initiate_payment') {
             ]);
         }
     } else {
-        echo json_encode(['success' => false, 'message' => 'Failed to verify payment']);
+        echo json_encode(['success' => false, 'message' => 'Failed to verify payment status']);
     }
 }
 ?>

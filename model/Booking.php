@@ -1,5 +1,11 @@
 <?php
 include '../database/config.php';
+
+// Enable error logging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('log_errors', 1);
+
 session_start();
 
 // Check if user is logged in
@@ -26,6 +32,32 @@ if (!isset($_GET['show_id'])) {
 $show_id = $_GET['show_id'];
 $user_id = $_SESSION['user_id'];
 
+// Verify user exists in database
+try {
+    $user_check = $conn->prepare("SELECT user_id, name, email, phone FROM users WHERE user_id = ?");
+    $user_check->execute([$user_id]);
+    $user = $user_check->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$user) {
+        // User doesn't exist, clear session and redirect to login
+        session_destroy();
+        $_SESSION['alert'] = [
+            'type' => 'error',
+            'message' => 'User session invalid. Please login again.'
+        ];
+        header('Location: login.php');
+        exit;
+    }
+} catch (PDOException $e) {
+    error_log("User verification error: " . $e->getMessage());
+    $_SESSION['alert'] = [
+        'type' => 'error',
+        'message' => 'Database error. Please try again.'
+    ];
+    header('Location: index.php');
+    exit;
+}
+
 // Initialize variables
 $errors = [];
 $success_message = '';
@@ -44,6 +76,8 @@ try {
             s.show_id,
             s.show_time,
             s.price,
+            s.theater_id,
+            s.hall_id,
             m.movie_id,
             m.title AS movie_title,
             m.duration,
@@ -51,9 +85,11 @@ try {
             m.genre,
             m.language,
             m.certificate,
-            t.theater_id,
+            m.description,
+            m.rating,
             t.name AS theater_name,
             t.location AS theater_location,
+            t.capacity,
             h.hall_name,
             h.total_capacity
         FROM 
@@ -94,11 +130,11 @@ try {
     $user_query->execute([$user_id]);
     $user = $user_query->fetch(PDO::FETCH_ASSOC);
 
-    // Get booked and reserved seats for this show
+    // Get ONLY actually booked seats (not reserved) for this show
     $booked_seats_query = $conn->prepare("
         SELECT seat_number, status, booking_id
         FROM seats
-        WHERE show_id = ? AND status IN ('booked', 'reserved')
+        WHERE show_id = ? AND status = 'booked'
         ORDER BY seat_number
     ");
     $booked_seats_query->execute([$show_id]);
@@ -131,6 +167,7 @@ try {
     }
 
 } catch (PDOException $e) {
+    error_log("Database error in booking: " . $e->getMessage());
     $_SESSION['alert'] = [
         'type' => 'error',
         'message' => 'Database error: ' . $e->getMessage()
@@ -139,144 +176,145 @@ try {
     exit;
 }
 
-// Process booking form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['book_tickets'])) {
-    $selectedSeats = isset($_POST['seats']) ? $_POST['seats'] : [];
-    $name = isset($_POST['name']) ? trim($_POST['name']) : '';
-    $email = isset($_POST['email']) ? trim($_POST['email']) : '';
-    $phone = isset($_POST['phone']) ? trim($_POST['phone']) : '';
-
-    // Validate inputs
-    if (empty($selectedSeats)) {
-        $errors[] = "Please select at least one seat.";
-    }
-    if (empty($name)) {
-        $errors[] = "Name is required.";
-    }
-    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors[] = "Valid email is required.";
-    }
-    if (empty($phone)) {
-        $errors[] = "Phone number is required.";
-    }
-
-    // Verify seats are still available (prevent double booking)
-    if (!empty($selectedSeats)) {
-        $placeholders = str_repeat('?,', count($selectedSeats) - 1) . '?';
+// Handle AJAX booking request - CREATE PENDING BOOKING ONLY
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'create_booking') {
+    header('Content-Type: application/json');
+    
+    try {
+        $name = trim($_POST['name'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $phone = trim($_POST['phone'] ?? '');
+        $seats = $_POST['seats'] ?? [];
         
-        // Check for already booked/reserved seats
-        $seats_check = $conn->prepare("
-            SELECT seat_number 
-            FROM seats 
-            WHERE show_id = ? 
-            AND seat_number IN ($placeholders) 
-            AND status IN ('booked', 'reserved')
-        ");
+        // Log the incoming data
+        error_log("Booking attempt - User: $user_id, Show: $show_id, Seats: " . implode(',', $seats));
         
-        $params = array_merge([$show_id], $selectedSeats);
-        $seats_check->execute($params);
-        $unavailable_seats = $seats_check->fetchAll(PDO::FETCH_COLUMN);
-
-        // Also check temporary selections by other users
-        $temp_check = $conn->prepare("
-            SELECT seat_number 
-            FROM temp_seat_selections 
-            WHERE show_id = ? 
-            AND seat_number IN ($placeholders) 
-            AND user_id != ?
-            AND expires_at > NOW()
-        ");
-        
-        $temp_params = array_merge([$show_id], $selectedSeats, [$user_id]);
-        $temp_check->execute($temp_params);
-        $temp_unavailable = $temp_check->fetchAll(PDO::FETCH_COLUMN);
-        
-        $all_unavailable = array_merge($unavailable_seats, $temp_unavailable);
-
-        if (!empty($all_unavailable)) {
-            $errors[] = "Seats " . implode(', ', $all_unavailable) . " are no longer available. Please refresh and select different seats.";
+        // Double-check user exists
+        $user_verify = $conn->prepare("SELECT user_id FROM users WHERE user_id = ?");
+        $user_verify->execute([$user_id]);
+        if (!$user_verify->fetch()) {
+            throw new Exception("User session invalid. Please login again.");
         }
-    }
-
-    if (empty($errors)) {
-        try {
-            $conn->beginTransaction();
-
-            // Update user information if changed
-            if ($user['name'] !== $name || $user['email'] !== $email || $user['phone'] !== $phone) {
-                $update_user = $conn->prepare("
-                    UPDATE users 
-                    SET name = ?, email = ?, phone = ? 
-                    WHERE user_id = ?
-                ");
-                $update_user->execute([$name, $email, $phone, $user_id]);
-            }
-
-            // Calculate total price
-            $seat_count = count($selectedSeats);
-            $ticket_price = $seat_count * $show['price'];
-            $convenience_fee = 20.00; // Fixed convenience fee
-            $total_price = $ticket_price + $convenience_fee;
-
-            // Create booking record with pending status
-            $booking_query = $conn->prepare("
-                INSERT INTO bookings (user_id, show_id, total_price, booking_status, payment_status, created_at)
-                VALUES (?, ?, ?, 'Pending', 'pending', NOW())
-            ");
-            
-            $booking_query->execute([$user_id, $show_id, $total_price]);
-            $booking_id = $conn->lastInsertId();
-
-            // Reserve seats temporarily
-            foreach ($selectedSeats as $seat) {
-                // First try to update existing seat record
-                $update_seat = $conn->prepare("
-                    UPDATE seats 
-                    SET status = 'reserved', booking_id = ?, updated_at = NOW()
-                    WHERE show_id = ? AND seat_number = ? AND status = 'available'
-                ");
-                $update_seat->execute([$booking_id, $show_id, $seat]);
-                
-                // If no rows were updated, insert new seat record
-                if ($update_seat->rowCount() === 0) {
-                    $insert_seat = $conn->prepare("
-                        INSERT INTO seats (show_id, seat_number, status, booking_id, created_at)
-                        VALUES (?, ?, 'reserved', ?, NOW())
-                        ON DUPLICATE KEY UPDATE 
-                        status = 'reserved', booking_id = ?, updated_at = NOW()
-                    ");
-                    $insert_seat->execute([$show_id, $seat, $booking_id, $booking_id]);
-                }
-            }
-            
-            // Store selected seats in session for payment page
-            $_SESSION['selected_seats'] = $selectedSeats;
-            $_SESSION['booking_timestamp'] = time(); // Add timestamp for expiration check
-            
-            // Remove temporary selections for this user
-            $delete_temp = $conn->prepare("
-                DELETE FROM temp_seat_selections
-                WHERE user_id = ? AND show_id = ?
-            ");
-            $delete_temp->execute([$user_id, $show_id]);
-
-            $conn->commit();
-
-            // Set success message
-            $_SESSION['alert'] = [
-                'type' => 'success',
-                'message' => 'Seats reserved successfully! Please complete payment within 15 minutes.'
-            ];
-
-            // Redirect to payment page
-            header("Location: payment.php?booking_id=" . $booking_id);
+        
+        // Validation
+        $errors = [];
+        if (empty($name)) $errors[] = 'Name is required';
+        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Valid email is required';
+        if (empty($phone)) $errors[] = 'Phone number is required';
+        if (empty($seats)) $errors[] = 'Please select at least one seat';
+        
+        if (!empty($errors)) {
+            error_log("Booking validation errors: " . implode(', ', $errors));
+            echo json_encode(['success' => false, 'errors' => $errors]);
             exit;
-
-        } catch (PDOException $e) {
-            $conn->rollBack();
-            $errors[] = "Booking failed: " . $e->getMessage();
-            error_log("Booking error: " . $e->getMessage());
         }
+        
+        $conn->beginTransaction();
+        
+        // Check if seats are available (not booked by others)
+        foreach ($seats as $seat) {
+            $check_seat = $conn->prepare("
+                SELECT COUNT(*) as count
+                FROM seats 
+                WHERE show_id = ? AND seat_number = ? AND status = 'booked'
+            ");
+            $check_seat->execute([$show_id, $seat]);
+            $seat_count = $check_seat->fetch(PDO::FETCH_ASSOC);
+            
+            if ($seat_count['count'] > 0) {
+                throw new Exception("Seat $seat is already booked");
+            }
+            
+            // Check if seat is temporarily selected by another user
+            $check_temp = $conn->prepare("
+                SELECT COUNT(*) as count
+                FROM temp_seat_selections 
+                WHERE show_id = ? AND seat_number = ? AND user_id != ? AND expires_at > NOW()
+            ");
+            $check_temp->execute([$show_id, $seat, $user_id]);
+            $temp_count = $check_temp->fetch(PDO::FETCH_ASSOC);
+            
+            if ($temp_count['count'] > 0) {
+                throw new Exception("Seat $seat is currently being selected by another user");
+            }
+        }
+        
+        // Calculate total price
+        $ticket_price = floatval($show['price']);
+        $convenience_fee = 20.00;
+        $total_price = (count($seats) * $ticket_price) + $convenience_fee;
+        
+        error_log("Calculated total price: $total_price for " . count($seats) . " seats");
+        
+        // Create PENDING booking (NOT confirmed yet)
+        $booking_query = $conn->prepare("
+            INSERT INTO bookings (user_id, show_id, total_price, booking_status, payment_status, created_at)
+            VALUES (?, ?, ?, 'Pending', 'pending', NOW())
+        ");
+        $booking_result = $booking_query->execute([$user_id, $show_id, $total_price]);
+        
+        if (!$booking_result) {
+            throw new Exception("Failed to create booking: " . implode(', ', $booking_query->errorInfo()));
+        }
+        
+        $booking_id = $conn->lastInsertId();
+        error_log("Created PENDING booking ID: $booking_id");
+        
+        // Store seats in temp_seat_selections (15 minutes expiry)
+        $expires_at = date('Y-m-d H:i:s', time() + (15 * 60)); // 15 minutes from now
+        
+        foreach ($seats as $seat) {
+            // Remove any existing temp selection for this seat by this user
+            $delete_temp = $conn->prepare("
+                DELETE FROM temp_seat_selections 
+                WHERE show_id = ? AND seat_number = ? AND user_id = ?
+            ");
+            $delete_temp->execute([$show_id, $seat, $user_id]);
+            
+            // Add new temp selection with explicit column names
+            $insert_temp = $conn->prepare("
+                INSERT INTO temp_seat_selections (user_id, show_id, seat_number, expires_at, timestamp)
+                VALUES (?, ?, ?, ?, NOW())
+            ");
+            $insert_result = $insert_temp->execute([$user_id, $show_id, $seat, $expires_at]);
+            
+            if (!$insert_result) {
+                $error_info = $insert_temp->errorInfo();
+                error_log("Failed to insert temp seat: " . implode(', ', $error_info));
+                throw new Exception("Failed to temporarily reserve seat $seat: " . $error_info[2]);
+            }
+        }
+        
+        // Update user details
+        $update_user = $conn->prepare("
+            UPDATE users SET name = ?, email = ?, phone = ? WHERE user_id = ?
+        ");
+        $update_user->execute([$name, $email, $phone, $user_id]);
+        
+        $conn->commit();
+        
+        // Store booking info in session
+        $_SESSION['booking_timestamp'] = time();
+        $_SESSION['selected_seats'] = $seats;
+        $_SESSION['pending_booking_id'] = $booking_id;
+        
+        error_log("Pending booking created successfully: $booking_id");
+        
+        echo json_encode([
+            'success' => true,
+            'booking_id' => $booking_id,
+            'message' => 'Seats temporarily reserved. Complete payment within 15 minutes.',
+            'redirect' => 'payment.php?booking_id=' . $booking_id
+        ]);
+        
+    } catch (Exception $e) {
+        $conn->rollBack();
+        error_log("Booking creation failed: " . $e->getMessage());
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage()
+        ]);
     }
+    exit;
 }
 ?>

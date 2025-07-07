@@ -75,6 +75,7 @@
             position: relative;
             border: 2px solid transparent;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            user-select: none;
         }
         
         .seat.available {
@@ -89,11 +90,11 @@
         }
         
         .seat.selected {
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            color: white;
-            border-color: #60a5fa;
-            transform: translateY(-2px) scale(1.05);
-            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4);
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
+            color: white !important;
+            border-color: #60a5fa !important;
+            transform: translateY(-2px) scale(1.05) !important;
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4) !important;
             animation: pulse 2s infinite;
         }
         
@@ -233,57 +234,6 @@
             font-size: 1rem;
         }
         
-        .alert {
-            padding: 1rem 1.5rem;
-            border-radius: 12px;
-            margin-bottom: 1.5rem;
-            border: 1px solid;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        
-        .alert-error {
-            background: rgba(239, 68, 68, 0.1);
-            border-color: rgba(239, 68, 68, 0.3);
-            color: #fca5a5;
-        }
-        
-        .movie-info {
-            display: flex;
-            gap: 1.5rem;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
-        
-        .movie-poster {
-            width: 80px;
-            height: 120px;
-            border-radius: 12px;
-            object-fit: cover;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-        }
-        
-        .movie-details h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-        
-        .movie-meta {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            font-size: 0.875rem;
-            color: #94a3b8;
-        }
-        
-        .meta-item {
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-        }
-        
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -319,6 +269,81 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal-content {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        
+        .khalti-btn {
+            background: linear-gradient(135deg, #5C2D91, #4A2275);
+            color: white;
+            width: 100%;
+            padding: 1rem;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .khalti-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(92, 45, 145, 0.4);
+        }
+        
+        .khalti-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #ef4444;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            z-index: 10001;
+            max-width: 400px;
+        }
+
+        .alert.success {
+            background: #10b981;
+        }
+
+        .alert.warning {
+            background: #f59e0b;
+        }
     </style>
 </head>
 <body>
@@ -327,61 +352,23 @@
     <!-- Loading overlay -->
     <div id="loadingOverlay" class="loading-overlay">
         <div class="spinner"></div>
-        <p class="text-white font-medium">Processing your booking...</p>
+        <p class="text-white font-medium">Processing...</p>
     </div>
     
     <div class="container mx-auto px-4 py-8">
-        <!-- Error Messages -->
-        <?php if (!empty($errors)): ?>
-        <div class="alert alert-error max-w-4xl mx-auto mb-6">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-            </svg>
-            <div>
-                <h3 class="font-semibold mb-2">Please fix the following errors:</h3>
-                <ul class="list-disc list-inside space-y-1">
-                    <?php foreach ($errors as $error): ?>
-                        <li><?php echo htmlspecialchars($error); ?></li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-        </div>
-        <?php endif; ?>
-        
         <!-- Movie Info Header -->
         <div class="movie-header max-w-4xl mx-auto p-6 mb-8">
-            <div class="movie-info">
+            <div class="flex gap-6 items-center">
                 <img src="<?php echo htmlspecialchars($show['poster_url'] ?? '/placeholder.svg?height=120&width=80'); ?>" 
                      alt="<?php echo htmlspecialchars($show['movie_title']); ?>" 
-                     class="movie-poster">
-                <div class="movie-details">
-                    <h1><?php echo htmlspecialchars($show['movie_title']); ?></h1>
-                    <div class="movie-meta">
-                        <span class="meta-item">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
-                            </svg>
-                            <?php echo $show['duration']; ?> mins
-                        </span>
-                        <span class="meta-item">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                            </svg>
-                            <?php echo htmlspecialchars($show['theater_name']); ?>
-                        </span>
-                        <span class="meta-item">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
-                            </svg>
-                            <?php echo date('D, M j, Y • g:i A', strtotime($show['show_time'])); ?>
-                        </span>
-                        <span class="meta-item">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd" />
-                            </svg>
-                            ₨<?php echo number_format($show['price'], 2); ?>
-                        </span>
+                     class="w-20 h-30 rounded-lg object-cover">
+                <div>
+                    <h1 class="text-2xl font-bold mb-2"><?php echo htmlspecialchars($show['movie_title']); ?></h1>
+                    <div class="flex gap-4 text-sm text-gray-300">
+                        <span><?php echo $show['duration']; ?> mins</span>
+                        <span><?php echo htmlspecialchars($show['theater_name']); ?></span>
+                        <span><?php echo date('D, M j, Y • g:i A', strtotime($show['show_time'])); ?></span>
+                        <span>₨<?php echo number_format($show['price'], 2); ?></span>
                     </div>
                 </div>
             </div>
@@ -395,387 +382,741 @@
             <div class="screen"></div>
             
             <!-- Seat Grid -->
-            <form method="post" id="bookingForm">
-                <div class="seat-grid" id="seatGrid">
-                    <?php
-                    $rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-                    $seatsPerRow = 10;
-                    
-                    foreach ($rows as $rowIndex => $row) {
-                        for ($seat = 1; $seat <= $seatsPerRow; $seat++) {
-                            $seatNumber = $row . $seat;
-                            $isBooked = isset($bookedSeats[$seatNumber]) && in_array($bookedSeats[$seatNumber], ['booked', 'reserved']);
-                            $isTempSelected = in_array($seatNumber, $tempSelectedSeats);
-                            $isUserSelected = in_array($seatNumber, $userTempSeats);
-                            
-                            $class = 'available';
-                            $disabled = '';
-                            
-                            if ($isBooked) {
-                                $class = 'booked';
-                                $disabled = 'disabled';
-                            } elseif ($isTempSelected) {
-                                $class = 'temp-selected';
-                                $disabled = 'disabled';
-                            } elseif ($isUserSelected) {
-                                $class = 'selected';
-                            }
-                            
-                            echo "<div class='seat {$class}' data-seat='{$seatNumber}' {$disabled}>";
-                            echo "<input type='checkbox' name='seats[]' value='{$seatNumber}' style='display: none;' " . ($isUserSelected ? 'checked' : '') . " " . ($disabled ? 'disabled' : '') . ">";
-                            echo $seat;
-                            echo "</div>";
+            <div class="seat-grid" id="seatGrid">
+                <?php
+                $rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+                $seatsPerRow = 10;
+                
+                foreach ($rows as $rowIndex => $row) {
+                    for ($seat = 1; $seat <= $seatsPerRow; $seat++) {
+                        $seatNumber = $row . $seat;
+                        $isBooked = isset($bookedSeats[$seatNumber]) && in_array($bookedSeats[$seatNumber], ['booked', 'reserved']);
+                        $isTempSelected = in_array($seatNumber, $tempSelectedSeats);
+                        $isUserSelected = in_array($seatNumber, $userTempSeats);
+                        
+                        $class = 'available';
+                        $disabled = '';
+                        
+                        if ($isBooked) {
+                            $class = 'booked';
+                            $disabled = 'data-disabled="true"';
+                        } elseif ($isTempSelected) {
+                            $class = 'temp-selected';
+                            $disabled = 'data-disabled="true"';
+                        } elseif ($isUserSelected) {
+                            $class = 'selected';
                         }
+                        
+                        echo "<div class='seat {$class}' data-seat='{$seatNumber}' {$disabled}>";
+                        echo $seat;
+                        echo "</div>";
                     }
-                    ?>
+                }
+                ?>
+            </div>
+            
+            <!-- Legend -->
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-seat available"></div>
+                    <span>Available</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-seat selected"></div>
+                    <span>Selected</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-seat booked"></div>
+                    <span>Booked</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-seat temp-selected"></div>
+                    <span>Selected by Others</span>
+                </div>
+            </div>
+            
+            <!-- Booking Form -->
+            <div class="booking-form">
+                <h3 class="text-xl font-semibold mb-6">Your Details</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="form-group">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" id="userName" value="<?php echo htmlspecialchars($user['name'] ?? ''); ?>" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" id="userEmail" value="<?php echo htmlspecialchars($user['email'] ?? ''); ?>" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group md:col-span-2">
+                        <label class="form-label">Phone Number</label>
+                        <input type="tel" id="userPhone" value="<?php echo htmlspecialchars($user['phone'] ?? ''); ?>" class="form-input" required>
+                    </div>
                 </div>
                 
-                <!-- Legend -->
-                <div class="legend">
-                    <div class="legend-item">
-                        <div class="legend-seat available"></div>
-                        <span>Available</span>
+                <!-- Booking Summary -->
+                <div class="booking-summary">
+                    <h4 class="font-semibold mb-4 text-lg">Booking Summary</h4>
+                    
+                    <div class="summary-row">
+                        <span>Selected Seats:</span>
+                        <span id="selectedSeatsDisplay">None</span>
                     </div>
-                    <div class="legend-item">
-                        <div class="legend-seat selected"></div>
-                        <span>Selected</span>
+                    
+                    <div class="summary-row">
+                        <span>Ticket Price:</span>
+                        <span>₨<?php echo number_format($show['price'], 2); ?> × <span id="seatCount">0</span></span>
                     </div>
-                    <div class="legend-item">
-                        <div class="legend-seat booked"></div>
-                        <span>Booked</span>
+                    
+                    <div class="summary-row">
+                        <span>Convenience Fee:</span>
+                        <span>₨20.00</span>
                     </div>
-                    <div class="legend-item">
-                        <div class="legend-seat temp-selected"></div>
-                        <span>Selected by Others</span>
+                    
+                    <div class="summary-row">
+                        <span>Total Amount:</span>
+                        <span id="totalAmount">₨20.00</span>
                     </div>
                 </div>
                 
-                <!-- Booking Form Fields -->
-                <div class="booking-form">
-                    <h3 class="text-xl font-semibold mb-6">Your Details</h3>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="form-group">
-                            <label class="form-label">Full Name</label>
-                            <input type="text" name="name" value="<?php echo htmlspecialchars($user['name'] ?? ''); ?>" class="form-input" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label">Email Address</label>
-                            <input type="email" name="email" value="<?php echo htmlspecialchars($user['email'] ?? ''); ?>" class="form-input" required>
-                        </div>
-                        
-                        <div class="form-group md:col-span-2">
-                            <label class="form-label">Phone Number</label>
-                            <input type="tel" name="phone" value="<?php echo htmlspecialchars($user['phone'] ?? ''); ?>" class="form-input" required>
-                        </div>
-                    </div>
-                    
-                    <!-- Booking Summary -->
-                    <div class="booking-summary">
-                        <h4 class="font-semibold mb-4 text-lg">Booking Summary</h4>
-                        
-                        <div class="summary-row">
-                            <span>Selected Seats:</span>
-                            <span id="selectedSeatsDisplay">None</span>
-                        </div>
-                        
-                        <div class="summary-row">
-                            <span>Ticket Price:</span>
-                            <span>₨<?php echo number_format($show['price'], 2); ?> × <span id="seatCount">0</span></span>
-                        </div>
-                        
-                        <div class="summary-row">
-                            <span>Convenience Fee:</span>
-                            <span>₨20.00</span>
-                        </div>
-                        
-                        <div class="summary-row">
-                            <span>Total Amount:</span>
-                            <span id="totalAmount">₨20.00</span>
-                        </div>
-                    </div>
-                    
-                    <button type="button" name="book_tickets" class="btn btn-primary w-full mt-6" id="bookButton" disabled onclick="document.getElementById('bookingForm').dispatchEvent(new Event('submit'))">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd" />
-                        </svg>
-                        Continue to Payment
-                    </button>
-                </div>
-            </form>
+                <button type="button" class="btn btn-primary w-full mt-6" id="bookButton" disabled>
+                    Continue to Payment
+                </button>
+            </div>
         </div>
     </div>
     
-    <?php include '../includes/footer.php'; ?>
-    
     <!-- Payment Modal -->
-    <div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
-        <div class="bg-slate-800 rounded-2xl p-8 max-w-md w-full mx-4 border border-slate-600">
-            <div class="text-center">
-                <div class="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 0h.01M9 16h6m-6 0a2 2 0 01-2-2V9a2 2 0 012-2h6a2 2 0 012 2v3" />
-                    </svg>
-                </div>
-                <h3 class="text-xl font-bold text-white mb-2">Complete Payment</h3>
-                <p class="text-gray-300 mb-6">Total Amount: <span id="modalTotalAmount" class="font-bold text-green-400"></span></p>
-                
-                <button id="payWithKhaltiBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors mb-4">
-                    Pay with Khalti
-                </button>
-                
-                <button id="cancelPaymentBtn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors">
-                    Cancel
-                </button>
+    <div id="paymentModal" class="modal">
+        <div class="modal-content text-center">
+            <div class="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 0h.01M9 16h6m-6 0a2 2 0 01-2-2V9a2 2 0 012-2h6a2 2 0 012 2v3" />
+                </svg>
             </div>
+            <h3 class="text-xl font-bold text-white mb-2">Complete Payment</h3>
+            <p class="text-gray-300 mb-6">Total Amount: <span id="modalTotalAmount" class="font-bold text-green-400"></span></p>
+            
+            <button id="payWithKhaltiBtn" class="khalti-btn mb-4">
+                Pay with Khalti
+            </button>
+            
+            <button id="cancelPaymentBtn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors">
+                Cancel
+            </button>
         </div>
     </div>
 
     <!-- Success Modal -->
-    <div id="successModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
-        <div class="bg-slate-800 rounded-2xl p-8 max-w-lg w-full mx-4 border border-green-500">
-            <div class="text-center">
-                <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                </div>
-                <h3 class="text-2xl font-bold text-white mb-2">Payment Successful!</h3>
-                <p class="text-gray-300 mb-6">Your booking has been confirmed</p>
-                
-                <!-- Ticket Details -->
-                <div class="bg-slate-700 rounded-lg p-4 mb-6 text-left">
-                    <h4 class="font-semibold text-white mb-3">Booking Details</h4>
-                    <div class="space-y-2 text-sm">
-                        <div class="flex justify-between">
-                            <span class="text-gray-400">Movie:</span>
-                            <span class="text-white" id="ticketMovie"><?php echo htmlspecialchars($show['movie_title']); ?></span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-400">Theater:</span>
-                            <span class="text-white" id="ticketTheater"><?php echo htmlspecialchars($show['theater_name']); ?></span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-400">Date & Time:</span>
-                            <span class="text-white" id="ticketDateTime"><?php echo date('D, M j, Y • g:i A', strtotime($show['show_time'])); ?></span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-400">Seats:</span>
-                            <span class="text-white" id="ticketSeats"></span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-400">Total Paid:</span>
-                            <span class="text-green-400 font-semibold" id="ticketTotal"></span>
-                        </div>
+    <div id="successModal" class="modal">
+        <div class="modal-content text-center">
+            <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <h3 class="text-2xl font-bold text-white mb-2">Payment Successful!</h3>
+            <p class="text-gray-300 mb-6">Your booking has been confirmed</p>
+            
+            <!-- Ticket Details -->
+            <div class="bg-slate-700 rounded-lg p-4 mb-6 text-left">
+                <h4 class="font-semibold text-white mb-3">🎫 Your Ticket</h4>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Movie:</span>
+                        <span class="text-white"><?php echo htmlspecialchars($show['movie_title']); ?></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Theater:</span>
+                        <span class="text-white"><?php echo htmlspecialchars($show['theater_name']); ?></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Date & Time:</span>
+                        <span class="text-white"><?php echo date('D, M j, Y • g:i A', strtotime($show['show_time'])); ?></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Seats:</span>
+                        <span class="text-white" id="ticketSeats"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Total Paid:</span>
+                        <span class="text-green-400 font-semibold" id="ticketTotal"></span>
                     </div>
                 </div>
-                
-                <button id="closeSuccessBtn" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors">
-                    View My Bookings
-                </button>
             </div>
+            
+            <button id="closeSuccessBtn" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors">
+                View My Bookings
+            </button>
         </div>
     </div>
 
     <script>
-        // Payment integration variables
-        let currentBookingId = null;
-        let paymentWindow = null;
-        let paymentCheckInterval = null;
+    // Global variables
+    const ticketPrice = <?php echo $show['price']; ?>;
+    const convenienceFee = 20.00;
+    const showId = <?php echo $show_id; ?>;
+    
+    let selectedSeats = [];
+    let currentBookingId = null;
+    let paymentWindow = null;
+    let paymentCheckInterval = null;
 
-        // Modal elements
-        const paymentModal = document.getElementById('paymentModal');
-        const successModal = document.getElementById('successModal');
-        const modalTotalAmount = document.getElementById('modalTotalAmount');
-        const payWithKhaltiBtn = document.getElementById('payWithKhaltiBtn');
-        const cancelPaymentBtn = document.getElementById('cancelPaymentBtn');
-        const closeSuccessBtn = document.getElementById('closeSuccessBtn');
+    // Utility functions
+    function showAlert(message, type = 'error') {
+        // Remove existing alerts
+        const existingAlerts = document.querySelectorAll('.alert');
+        existingAlerts.forEach(alert => alert.remove());
+        
+        const alert = document.createElement('div');
+        alert.className = `alert ${type}`;
+        alert.innerHTML = `
+            <div class="flex items-center justify-between">
+                <span>${message}</span>
+                <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">
+                    ×
+                </button>
+            </div>
+        `;
+        document.body.appendChild(alert);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (alert.parentElement) {
+                alert.remove();
+            }
+        }, 5000);
+    }
 
-        // Update the form submission to show payment modal instead of redirecting
-        document.getElementById('bookingForm').addEventListener('submit', function(e) {
-            e.preventDefault();
+    function showLoading(show = true) {
+        const overlay = document.getElementById('loadingOverlay');
+        if (show) {
+            overlay.classList.add('active');
+        } else {
+            overlay.classList.remove('active');
+        }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Booking system initializing...');
+        console.log('Show ID:', showId);
+        console.log('Ticket Price:', ticketPrice);
+        
+        try {
+            initializeSeatSelection();
+            updateBookingDetails();
+            console.log('✅ Booking system initialized successfully');
+        } catch (error) {
+            console.error('❌ Error initializing booking system:', error);
+            showAlert('Failed to initialize booking system. Please refresh the page.');
+        }
+    });
+    
+    function initializeSeatSelection() {
+        const seats = document.querySelectorAll('.seat');
+        console.log(`Found ${seats.length} seats`);
+        
+        seats.forEach((seat, index) => {
+            const seatNumber = seat.dataset.seat;
+            const isDisabled = seat.hasAttribute('data-disabled');
             
-            const checkedSeats = document.querySelectorAll('input[name="seats[]"]:checked');
+            if (!isDisabled) {
+                seat.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    try {
+                        toggleSeat(this);
+                    } catch (error) {
+                        console.error('Error toggling seat:', error);
+                        showAlert('Error selecting seat. Please try again.');
+                    }
+                });
+                
+                // Add hover effects
+                seat.addEventListener('mouseenter', function() {
+                    if (!this.classList.contains('selected') && !this.hasAttribute('data-disabled')) {
+                        this.style.transform = 'translateY(-2px) scale(1.05)';
+                    }
+                });
+                
+                seat.addEventListener('mouseleave', function() {
+                    if (!this.classList.contains('selected')) {
+                        this.style.transform = '';
+                    }
+                });
+            }
+        });
+    }
+    
+    function toggleSeat(seatElement) {
+        const seatNumber = seatElement.dataset.seat;
+        console.log(`Toggling seat: ${seatNumber}`);
+        
+        if (seatElement.classList.contains('selected')) {
+            // Deselect
+            seatElement.classList.remove('selected');
+            seatElement.classList.add('available');
+            seatElement.style.transform = '';
             
-            if (checkedSeats.length === 0 || selectedSeats.length === 0) {
-                alert('Please select at least one seat before proceeding.');
-                return false;
+            const index = selectedSeats.indexOf(seatNumber);
+            if (index > -1) {
+                selectedSeats.splice(index, 1);
             }
             
-            // Show loading overlay
-            document.getElementById('loadingOverlay').classList.add('active');
+            updateTempSeatSelection(seatNumber, 'deselect');
+        } else if (seatElement.classList.contains('available')) {
+            // Select
+            seatElement.classList.remove('available');
+            seatElement.classList.add('selected');
+            seatElement.style.transform = 'translateY(-2px) scale(1.05)';
             
-            // Prepare form data
-            const formData = new FormData(this);
+            if (!selectedSeats.includes(seatNumber)) {
+                selectedSeats.push(seatNumber);
+            }
             
-            // Submit booking via AJAX
-            fetch('booking.php?show_id=<?php echo $show_id; ?>', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('loadingOverlay').classList.remove('active');
-                
-                // Check if booking was successful (look for booking_id in response)
-                const bookingIdMatch = data.match(/booking_id["\s]*[:=]["\s]*(\d+)/);
-                if (bookingIdMatch) {
-                    currentBookingId = bookingIdMatch[1];
-                    showPaymentModal();
+            updateTempSeatSelection(seatNumber, 'select');
+        }
+        
+        console.log('Selected seats:', selectedSeats);
+        updateBookingDetails();
+    }
+    
+    function updateTempSeatSelection(seatNumber, action) {
+        const formData = new FormData();
+        formData.append('show_id', showId);
+        formData.append('seat_number', seatNumber);
+        formData.append('action', action);
+        
+        fetch('update_temp_seat.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data.success) {
+                console.warn('Temp seat update warning:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error updating temp seat:', error);
+            // Don't show alert for temp seat errors as they're not critical
+        });
+    }
+    
+    function updateBookingDetails() {
+        const seatCount = selectedSeats.length;
+        
+        document.getElementById('selectedSeatsDisplay').textContent = 
+            seatCount > 0 ? selectedSeats.join(', ') : 'None';
+        document.getElementById('seatCount').textContent = seatCount;
+        
+        const subtotal = seatCount * ticketPrice;
+        const total = subtotal + convenienceFee;
+        
+        document.getElementById('totalAmount').textContent = '₨' + total.toFixed(2);
+        
+        const bookButton = document.getElementById('bookButton');
+        bookButton.disabled = seatCount === 0;
+        
+        if (seatCount === 0) {
+            bookButton.style.opacity = '0.5';
+            bookButton.style.cursor = 'not-allowed';
+        } else {
+            bookButton.style.opacity = '1';
+            bookButton.style.cursor = 'pointer';
+        }
+    }
+    
+    // Book button handler
+    document.getElementById('bookButton').addEventListener('click', function() {
+        console.log('📝 Book button clicked');
+        
+        if (selectedSeats.length === 0) {
+            showAlert('Please select at least one seat before proceeding.', 'warning');
+            return;
+        }
+        
+        const name = document.getElementById('userName').value.trim();
+        const email = document.getElementById('userEmail').value.trim();
+        const phone = document.getElementById('userPhone').value.trim();
+        
+        if (!name || !email || !phone) {
+            showAlert('Please fill in all required fields.', 'warning');
+            return;
+        }
+        
+        // Validate email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            showAlert('Please enter a valid email address.', 'warning');
+            return;
+        }
+        
+        // Validate phone
+        if (phone.length < 10) {
+            showAlert('Please enter a valid phone number.', 'warning');
+            return;
+        }
+        
+        createBooking(name, email, phone);
+    });
+    
+    function createBooking(name, email, phone) {
+        console.log('🎫 Creating booking...');
+        console.log('Data:', { name, email, phone, seats: selectedSeats });
+        showLoading(true);
+        
+        const formData = new FormData();
+        formData.append('action', 'create_booking');
+        formData.append('name', name);
+        formData.append('email', email);
+        formData.append('phone', phone);
+        selectedSeats.forEach(seat => {
+            formData.append('seats[]', seat);
+        });
+        
+        // Log the form data
+        for (let pair of formData.entries()) {
+            console.log(pair[0] + ': ' + pair[1]);
+        }
+        
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                return response.text().then(text => {
+                    console.error('Non-JSON response:', text);
+                    throw new Error('Server returned non-JSON response');
+                });
+            }
+            
+            return response.json();
+        })
+        .then(data => {
+            showLoading(false);
+            console.log('Booking response:', data);
+        
+            if (data.success) {
+                console.log('✅ Booking created:', data.booking_id);
+                console.log('Redirecting to:', data.redirect);
+            
+                // Show success message briefly before redirect
+                showAlert('Booking created successfully! Redirecting to payment...', 'success');
+            
+                // Redirect after a short delay
+                setTimeout(() => {
+                    window.location.href = data.redirect;
+                }, 1500);
+            } else {
+                console.error('❌ Booking failed:', data);
+                if (data.errors && Array.isArray(data.errors)) {
+                    showAlert(data.errors.join('<br>'));
                 } else {
-                    // If booking failed, reload page to show errors
-                    location.reload();
+                    showAlert(data.message || 'Booking failed. Please try again.');
                 }
-            })
-            .catch(error => {
-                document.getElementById('loadingOverlay').classList.remove('active');
-                alert('An error occurred. Please try again.');
-                console.error('Error:', error);
+            }
+        })
+        .catch(error => {
+            showLoading(false);
+            console.error('❌ Booking error:', error);
+            showAlert('Network error or server issue. Please check the console and try again.');
+        
+            // Log additional debug info
+            console.error('Error details:', {
+                message: error.message,
+                stack: error.stack
             });
         });
-
-        function showPaymentModal() {
-            const total = (selectedSeats.length * ticketPrice) + convenienceFee;
-            modalTotalAmount.textContent = '₨' + total.toFixed(2);
-            paymentModal.classList.remove('hidden');
+    }
+    
+    function showPaymentModal() {
+        const total = (selectedSeats.length * ticketPrice) + convenienceFee;
+        document.getElementById('modalTotalAmount').textContent = '₨' + total.toFixed(2);
+        document.getElementById('paymentModal').classList.add('active');
+    }
+    
+    function hidePaymentModal() {
+        document.getElementById('paymentModal').classList.remove('active');
+    }
+    
+    function showSuccessModal() {
+        document.getElementById('ticketSeats').textContent = selectedSeats.join(', ');
+        document.getElementById('ticketTotal').textContent = document.getElementById('modalTotalAmount').textContent;
+        
+        hidePaymentModal();
+        document.getElementById('successModal').classList.add('active');
+    }
+    
+    // Payment handlers
+    document.getElementById('payWithKhaltiBtn').addEventListener('click', function() {
+        if (!currentBookingId) {
+            showAlert('No booking found. Please try again.');
+            return;
         }
-
-        function hidePaymentModal() {
-            paymentModal.classList.add('hidden');
-        }
-
-        function showSuccessModal() {
-            // Update ticket details
-            document.getElementById('ticketSeats').textContent = selectedSeats.join(', ');
-            document.getElementById('ticketTotal').textContent = modalTotalAmount.textContent;
+        
+        this.disabled = true;
+        this.textContent = 'Processing...';
+        
+        initiateKhaltiPayment();
+    });
+    
+    function initiateKhaltiPayment() {
+        console.log('💳 Initiating Khalti payment...');
+        
+        const formData = new FormData();
+        formData.append('action', 'initiate_payment');
+        formData.append('booking_id', currentBookingId);
+        
+        fetch('payment_handler.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                console.log('✅ Payment initiated successfully');
+                paymentWindow = window.open(data.payment_url, 'khaltiPayment', 'width=800,height=600,scrollbars=yes,resizable=yes');
+                
+                if (!paymentWindow) {
+                    throw new Error('Popup blocked. Please allow popups for this site.');
+                }
+                
+                startPaymentStatusCheck(data.pidx);
+            } else {
+                throw new Error(data.message || 'Payment initiation failed');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Payment initiation error:', error);
+            showAlert(error.message || 'Payment initiation failed. Please try again.');
+            resetPaymentButton();
+        });
+    }
+    
+    function startPaymentStatusCheck(pidx) {
+        console.log('🔍 Starting payment status check...');
+        let checkCount = 0;
+        const maxChecks = 60; // 5 minutes max
+        
+        paymentCheckInterval = setInterval(() => {
+            checkCount++;
             
-            hidePaymentModal();
-            successModal.classList.remove('hidden');
-        }
-
-        // Payment button click handler
-        payWithKhaltiBtn.addEventListener('click', function() {
-            if (!currentBookingId) {
-                alert('Booking ID not found. Please try again.');
+            // Check if payment window is closed
+            if (paymentWindow && paymentWindow.closed) {
+                console.log('💰 Payment window closed, checking final status...');
+                clearInterval(paymentCheckInterval);
+                checkPaymentStatus(pidx, true);
                 return;
             }
             
-            this.disabled = true;
-            this.innerHTML = 'Processing...';
-            
-            // Initiate Khalti payment
-            initiateKhaltiPayment();
-        });
-
-        function initiateKhaltiPayment() {
-            const formData = new FormData();
-            formData.append('action', 'initiate_payment');
-            formData.append('booking_id', currentBookingId);
-            
-            fetch('payment_handler.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Open Khalti payment window
-                    paymentWindow = window.open(data.payment_url, 'khaltiPayment', 'width=800,height=600,scrollbars=yes,resizable=yes');
-                    
-                    // Start checking payment status
-                    startPaymentStatusCheck(data.pidx);
-                } else {
-                    alert(data.message || 'Failed to initiate payment');
-                    resetPaymentButton();
-                }
-            })
-            .catch(error => {
-                alert('An error occurred. Please try again.');
+            // Timeout after max checks
+            if (checkCount >= maxChecks) {
+                console.log('⏰ Payment verification timeout');
+                clearInterval(paymentCheckInterval);
                 resetPaymentButton();
-                console.error('Error:', error);
-            });
-        }
-
-        function startPaymentStatusCheck(pidx) {
-            let checkCount = 0;
-            const maxChecks = 60; // Check for 5 minutes (60 * 5 seconds)
+                showAlert('Payment verification timeout. Please check your booking status.');
+                return;
+            }
             
-            paymentCheckInterval = setInterval(() => {
-                checkCount++;
-                
-                // Check if payment window is closed
-                if (paymentWindow && paymentWindow.closed) {
+            // Regular status check
+            checkPaymentStatus(pidx);
+        }, 5000);
+    }
+    
+    function checkPaymentStatus(pidx, isFinalCheck = false) {
+        const formData = new FormData();
+        formData.append('action', 'check_payment_status');
+        formData.append('pidx', pidx);
+        formData.append('booking_id', currentBookingId);
+        
+        fetch('payment_handler.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                if (data.status === 'completed') {
+                    console.log('✅ Payment completed successfully!');
                     clearInterval(paymentCheckInterval);
-                    checkPaymentStatus(pidx, true); // Final check
-                    return;
-                }
-                
-                // Stop checking after max attempts
-                if (checkCount >= maxChecks) {
+                    if (paymentWindow) paymentWindow.close();
+                    showSuccessModal();
+                } else if (data.status === 'failed') {
+                    console.log('❌ Payment failed');
                     clearInterval(paymentCheckInterval);
+                    if (paymentWindow) paymentWindow.close();
+                    showAlert('Payment failed. Please try again.');
                     resetPaymentButton();
-                    alert('Payment verification timeout. Please check your booking status.');
-                    return;
-                }
-                
-                checkPaymentStatus(pidx);
-            }, 5000);
-        }
-
-        function checkPaymentStatus(pidx, isFinalCheck = false) {
-            const formData = new FormData();
-            formData.append('action', 'check_payment_status');
-            formData.append('pidx', pidx);
-            formData.append('booking_id', currentBookingId);
-            
-            fetch('payment_handler.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    if (data.status === 'completed') {
-                        // Payment successful
-                        clearInterval(paymentCheckInterval);
-                        if (paymentWindow) paymentWindow.close();
-                        showSuccessModal();
-                    } else if (data.status === 'failed') {
-                        // Payment failed
-                        clearInterval(paymentCheckInterval);
-                        if (paymentWindow) paymentWindow.close();
-                        alert('Payment failed. Please try again.');
-                        resetPaymentButton();
-                    }
-                    // If pending, continue checking (unless it's final check)
                 } else if (isFinalCheck) {
-                    // Final check failed, assume payment didn't complete
-                    alert('Payment status unclear. Please check your booking status.');
+                    console.log('⚠️ Payment status unclear on final check');
+                    showAlert('Payment status unclear. Please check your booking status.');
                     resetPaymentButton();
+                }
+            } else if (isFinalCheck) {
+                console.log('⚠️ Payment verification failed on final check');
+                showAlert('Payment verification failed. Please check your booking status.');
+                resetPaymentButton();
+            }
+        })
+        .catch(error => {
+            console.error('Error checking payment status:', error);
+            if (isFinalCheck) {
+                showAlert('Unable to verify payment. Please check your booking status.');
+                resetPaymentButton();
+            }
+        });
+    }
+    
+    function resetPaymentButton() {
+        const btn = document.getElementById('payWithKhaltiBtn');
+        btn.disabled = false;
+        btn.textContent = 'Pay with Khalti';
+    }
+    
+    // Modal close handlers
+    document.getElementById('cancelPaymentBtn').addEventListener('click', function() {
+        hidePaymentModal();
+        if (paymentCheckInterval) {
+            clearInterval(paymentCheckInterval);
+        }
+        if (paymentWindow) {
+            paymentWindow.close();
+        }
+        resetPaymentButton();
+    });
+    
+    document.getElementById('closeSuccessBtn').addEventListener('click', function() {
+        window.location.href = '../view/index.php';
+    });
+    
+    // Periodic seat status check
+    let seatCheckInterval = setInterval(() => {
+        fetch(`check_seats.php?show_id=${showId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (Array.isArray(data)) {
+                    data.forEach(seat => {
+                        const seatElement = document.querySelector(`[data-seat="${seat.seat_number}"]`);
+                        if (seatElement && !selectedSeats.includes(seat.seat_number)) {
+                            // Reset seat classes
+                            seatElement.className = 'seat';
+                            
+                            if (seat.status === 'booked' || seat.status === 'reserved') {
+                                seatElement.classList.add('booked');
+                                seatElement.setAttribute('data-disabled', 'true');
+                            } else if (seat.status === 'temp_selected') {
+                                seatElement.classList.add('temp-selected');
+                                seatElement.setAttribute('data-disabled', 'true');
+                            } else {
+                                seatElement.classList.add('available');
+                                seatElement.removeAttribute('data-disabled');
+                            }
+                        }
+                    });
                 }
             })
             .catch(error => {
-                if (isFinalCheck) {
-                    console.error('Error checking payment status:', error);
-                    resetPaymentButton();
-                }
+                console.error('Error checking seats:', error);
+                // Don't show alert for periodic checks
             });
+    }, 10000); // Check every 10 seconds
+    
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', function() {
+        if (paymentCheckInterval) {
+            clearInterval(paymentCheckInterval);
         }
-
-        function resetPaymentButton() {
-            payWithKhaltiBtn.disabled = false;
-            payWithKhaltiBtn.innerHTML = 'Pay with Khalti';
+        if (seatCheckInterval) {
+            clearInterval(seatCheckInterval);
         }
+        if (paymentWindow) {
+            paymentWindow.close();
+        }
+    });
 
-        // Cancel payment button
-        cancelPaymentBtn.addEventListener('click', hidePaymentModal);
-
-        // Close success modal and redirect
-        closeSuccessBtn.addEventListener('click', function() {
-            window.location.href = 'my_bookings.php';
+    // Add this debug function after the other functions
+    function debugBookingState() {
+        console.log('=== BOOKING DEBUG INFO ===');
+        console.log('Show ID:', showId);
+        console.log('Selected Seats:', selectedSeats);
+        console.log('Ticket Price:', ticketPrice);
+        console.log('User Details:', {
+            name: document.getElementById('userName').value,
+            email: document.getElementById('userEmail').value,
+            phone: document.getElementById('userPhone').value
         });
-    </script>
+        console.log('Current URL:', window.location.href);
+        console.log('========================');
+    }
+
+    // Call debug function when book button is clicked
+    document.getElementById('bookButton').addEventListener('click', function() {
+        debugBookingState();
+        
+        if (selectedSeats.length === 0) {
+            showAlert('Please select at least one seat before proceeding.', 'warning');
+            return;
+        }
+        
+        const name = document.getElementById('userName').value.trim();
+        const email = document.getElementById('userEmail').value.trim();
+        const phone = document.getElementById('userPhone').value.trim();
+        
+        if (!name || !email || !phone) {
+            showAlert('Please fill in all required fields.', 'warning');
+            return;
+        }
+        
+        // Validate email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            showAlert('Please enter a valid email address.', 'warning');
+            return;
+        }
+        
+        // Validate phone
+        if (phone.length < 10) {
+            showAlert('Please enter a valid phone number.', 'warning');
+            return;
+        }
+        
+        createBooking(name, email, phone);
+    });
+</script>
 </body>
 </html>
-</merged_code>

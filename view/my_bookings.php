@@ -2,10 +2,8 @@
 include '../database/config.php';
 session_start();
 
-// Enable error logging
 error_log("Loading my_bookings.php");
 
-// Redirect to login if not logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
@@ -13,7 +11,6 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// Fetch user's bookings with movie, show, theater details
 $bookings_query = $conn->prepare("
     SELECT b.booking_id, b.show_id, b.total_price, b.booking_status, b.created_at,
            b.payment_status, b.payment_method, b.payment_id,
@@ -30,7 +27,6 @@ $bookings_query = $conn->prepare("
 $bookings_query->execute([$user_id]);
 $bookings = $bookings_query->fetchAll(PDO::FETCH_ASSOC);
 
-// Function to fetch seats for a specific booking
 function getBookingSeats($conn, $booking_id, $show_id) {
     error_log("Fetching seats for booking ID: $booking_id, show ID: $show_id");
     
@@ -38,10 +34,10 @@ function getBookingSeats($conn, $booking_id, $show_id) {
     $seats_query = $conn->prepare("
         SELECT seat_number 
         FROM seats 
-        WHERE show_id = ? AND booking_id = ? AND status = 'booked'
+        WHERE booking_id = ? AND show_id = ? AND status = 'booked'
         ORDER BY seat_number
     ");
-    $seats_query->execute([$show_id, $booking_id]);
+    $seats_query->execute([$booking_id, $show_id]);
     $seats = $seats_query->fetchAll(PDO::FETCH_COLUMN);
     
     if (!empty($seats)) {
@@ -54,7 +50,7 @@ function getBookingSeats($conn, $booking_id, $show_id) {
     $payment_log_query = $conn->prepare("
         SELECT payment_id 
         FROM payment_logs 
-        WHERE booking_id = ? 
+        WHERE booking_id = ?
         ORDER BY created_at DESC 
         LIMIT 1
     ");
@@ -68,7 +64,7 @@ function getBookingSeats($conn, $booking_id, $show_id) {
         $payment_log_time_query = $conn->prepare("
             SELECT created_at 
             FROM payment_logs 
-            WHERE booking_id = ? AND payment_id = ? 
+            WHERE booking_id = ? AND payment_id = ?
             ORDER BY created_at DESC 
             LIMIT 1
         ");
@@ -80,10 +76,11 @@ function getBookingSeats($conn, $booking_id, $show_id) {
             
             // Look for seats booked around the same time (within 10 minutes)
             $seats_by_time_query = $conn->prepare("
-                SELECT seat_number 
-                FROM seats 
-                WHERE show_id = ? AND status = 'booked' 
+                SELECT seat_number
+                FROM seats
+                WHERE show_id = ? AND status = 'booked'
                 AND created_at BETWEEN DATE_SUB(?, INTERVAL 10 MINUTE) AND DATE_ADD(?, INTERVAL 10 MINUTE)
+                AND booking_id IS NULL
                 ORDER BY seat_number
             ");
             $seats_by_time_query->execute([$show_id, $payment_time, $payment_time]);
@@ -95,7 +92,7 @@ function getBookingSeats($conn, $booking_id, $show_id) {
                 // Update these seats to associate them with the booking_id
                 $update_seats = $conn->prepare("
                     UPDATE seats 
-                    SET booking_id = ? 
+                    SET booking_id = ?
                     WHERE show_id = ? AND seat_number = ? AND status = 'booked'
                 ");
                 
@@ -121,8 +118,9 @@ function getBookingSeats($conn, $booking_id, $show_id) {
         $seats_query = $conn->prepare("
             SELECT seat_number 
             FROM seats 
-            WHERE show_id = ? AND status = 'booked' 
+            WHERE show_id = ? AND status = 'booked'
             AND created_at BETWEEN DATE_SUB(?, INTERVAL 10 MINUTE) AND DATE_ADD(?, INTERVAL 10 MINUTE)
+            AND booking_id IS NULL
             ORDER BY seat_number
         ");
         $seats_query->execute([$show_id, $booking_time, $booking_time]);
@@ -134,7 +132,7 @@ function getBookingSeats($conn, $booking_id, $show_id) {
             // Update these seats to associate them with the booking_id
             $update_seats = $conn->prepare("
                 UPDATE seats 
-                SET booking_id = ? 
+                SET booking_id = ?
                 WHERE show_id = ? AND seat_number = ? AND status = 'booked'
             ");
             
@@ -146,42 +144,12 @@ function getBookingSeats($conn, $booking_id, $show_id) {
         }
     }
     
-    // Last resort: check if there are any seats with empty status for this show
-    error_log("No seats found by booking time, checking for empty status seats");
-    $empty_status_query = $conn->prepare("
-        SELECT seat_number 
-        FROM seats 
-        WHERE show_id = ? AND (status = '' OR status IS NULL)
-        ORDER BY seat_number
-    ");
-    $empty_status_query->execute([$show_id]);
-    $empty_status_seats = $empty_status_query->fetchAll(PDO::FETCH_COLUMN);
-    
-    if (!empty($empty_status_seats)) {
-        error_log("Found " . count($empty_status_seats) . " seats with empty status: " . implode(', ', $empty_status_seats));
-        
-        // Update these seats to be booked and associated with the booking_id
-        $update_empty_seats = $conn->prepare("
-            UPDATE seats 
-            SET status = 'booked', booking_id = ? 
-            WHERE show_id = ? AND seat_number = ? AND (status = '' OR status IS NULL)
-        ");
-        
-        foreach ($empty_status_seats as $seat) {
-            $update_empty_seats->execute([$booking_id, $show_id, $seat]);
-        }
-        
-        return $empty_status_seats;
-    }
-    
     error_log("No seats found for booking ID: $booking_id");
     return [];
 }
 
-// Get booking count
 $booking_count = count($bookings);
 
-// Get cancelable bookings count (e.g., shows that haven't happened yet)
 $cancelable_count = 0;
 foreach ($bookings as $booking) {
     if (strtotime($booking['show_time']) > time() && $booking['booking_status'] != 'Cancelled') {
@@ -189,22 +157,17 @@ foreach ($bookings as $booking) {
     }
 }
 
-// Handle booking cancellation
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['cancel_booking'])) {
     $booking_id = $_POST['booking_id'];
     $show_id = $_POST['show_id'];
     
-    // Start transaction
     $conn->beginTransaction();
     try {
-        // Update booking status
         $update_booking = $conn->prepare("UPDATE bookings SET booking_status = 'Cancelled' WHERE booking_id = ? AND user_id = ?");
         $update_booking->execute([$booking_id, $user_id]);
         
-        // Get seats for this booking
         $seats = getBookingSeats($conn, $booking_id, $show_id);
         
-        // Update seat status back to available
         $update_seat = $conn->prepare("UPDATE seats SET status = 'available', booking_id = NULL WHERE show_id = ? AND seat_number = ?");
         foreach ($seats as $seat) {
             $update_seat->execute([$show_id, $seat]);
@@ -212,7 +175,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['cancel_booking'])) {
         
         $conn->commit();
         
-        // Check if payment is pending and redirect to payment page
         if (isset($booking['payment_status']) && $booking['payment_status'] == 'pending') {
             header('Location: payment.php?booking_id=' . $booking_id);
             exit();
@@ -238,7 +200,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['cancel_booking'])) {
     }
 }
 
-// Function to generate QR code data
 function generateQRData($booking, $seats_text) {
     $data = [
         'id' => $booking['booking_id'],
@@ -258,7 +219,7 @@ function generateQRData($booking, $seats_text) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Bookings - CineBook</title>
-    <script src="../assets/js/talwind.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
@@ -309,7 +270,6 @@ function generateQRData($booking, $seats_text) {
             width: 100px;
             height: 100px;
         }
-
         .qr-container img {
             width: 100%;
             height: 100%;
@@ -495,13 +455,10 @@ function generateQRData($booking, $seats_text) {
     </style>
 </head>
 <body>
-    <!-- Include loader -->
     <?php include '../includes/loader.php'; ?>
     
-    <!-- Include navigation -->
     <?php include '../includes/nav.php'; ?>
     
-    <!-- Alert Messages -->
     <?php if (isset($_SESSION['alert'])): ?>
     <div id="alert" class="alert <?php echo $_SESSION['alert']['type'] === 'success' ? 'alert-success' : 'alert-error'; ?>">
         <div class="flex items-start">
@@ -532,7 +489,6 @@ function generateQRData($booking, $seats_text) {
     <?php unset($_SESSION['alert']); ?>
     <?php endif; ?>
     
-    <!-- Payment Success/Error Messages -->
     <?php if (isset($_SESSION['payment_success'])): ?>
     <div id="payment-alert" class="alert alert-success">
         <div class="flex items-start">
@@ -580,9 +536,8 @@ function generateQRData($booking, $seats_text) {
     </div>
     <?php unset($_SESSION['payment_error']); ?>
     <?php endif; ?>
-
+    
     <div class="max-w-6xl mx-auto px-4 pt-8 pb-24">
-        <!-- Header section -->
         <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
             <div>
                 <h1 class="text-3xl font-bold mb-2 text-white">My Bookings</h1>
@@ -598,7 +553,6 @@ function generateQRData($booking, $seats_text) {
             </a>
         </div>
         
-        <!-- Booking stats overview -->
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
             <div class="stats-card flex flex-col items-center justify-center py-4">
                 <span class="text-sm text-slate-400 mb-1">Total Bookings</span>
@@ -619,7 +573,6 @@ function generateQRData($booking, $seats_text) {
         </div>
         
         <?php if (count($bookings) > 0): ?>
-            <!-- Filter tabs -->
             <div class="filter-tabs">
                 <button class="filter-tab active" data-filter="all">
                     All Bookings
@@ -638,21 +591,16 @@ function generateQRData($booking, $seats_text) {
                 </button>
             </div>
             
-            <!-- Bookings list -->
             <div class="space-y-6">
-                <?php foreach ($bookings as $booking): 
-                    // Get seats for this booking
+                <?php foreach ($bookings as $booking):
                     $seats = getBookingSeats($conn, $booking['booking_id'], $booking['show_id']);
-                    $seats_text = implode(', ', $seats);
+                    $seats_text = !empty($seats) ? implode(', ', $seats) : 'Seats not assigned';
                     
-                    // Format date & time
                     $show_date = date('D, d M Y', strtotime($booking['show_time']));
                     $show_time = date('h:i A', strtotime($booking['show_time']));
                     
-                    // Check if show is in the past
                     $is_past_show = strtotime($booking['show_time']) < time();
                     
-                    // Status class
                     $status_color = '';
                     $booking_status_class = '';
                     switch ($booking['booking_status']) {
@@ -668,8 +616,7 @@ function generateQRData($booking, $seats_text) {
                             $status_color = 'bg-yellow-900 text-yellow-400';
                             $booking_status_class = 'active';
                     }
-
-                    // Payment status badge
+                    
                     $payment_status_color = '';
                     switch ($booking['payment_status']) {
                         case 'paid':
@@ -683,22 +630,18 @@ function generateQRData($booking, $seats_text) {
                             break;
                         default:
                             $payment_status_color = 'bg-yellow-900 text-yellow-400';
-                            $booking_status_class = 'pending'; // Add pending class for filtering
+                            $booking_status_class = 'pending';
                     }
                     
-                    // Generate a simple booking code
                     $booking_code = strtoupper(substr(md5($booking['booking_id'] . $booking['created_at']), 0, 8));
-                    
-                    // Generate QR data
                     $qr_data = generateQRData($booking, $seats_text);
                 ?>
                 
                 <div class="booking-card booking-item" data-status="<?php echo $booking_status_class; ?>">
-                    <!-- Top section with movie info -->
                     <div class="p-4 md:p-6 flex flex-col md:flex-row gap-4">
                         <div class="w-full md:w-1/4 aspect-[2/3] overflow-hidden rounded-lg bg-slate-800 flex-shrink-0">
                             <?php if (!empty($booking['poster_url'])): ?>
-                            <img src="<?php echo $booking['poster_url']; ?>" alt="<?php echo $booking['title']; ?>" class="w-full h-full object-cover">
+                            <img src="<?php echo htmlspecialchars($booking['poster_url']); ?>" alt="<?php echo htmlspecialchars($booking['title']); ?>" class="w-full h-full object-cover">
                             <?php else: ?>
                             <div class="w-full h-full flex items-center justify-center bg-slate-700">
                                 <span class="text-slate-400">No Image</span>
@@ -707,7 +650,7 @@ function generateQRData($booking, $seats_text) {
                         </div>
                         <div class="flex-1">
                             <div class="flex justify-between items-start">
-                                <h2 class="text-xl font-bold mb-1"><?php echo $booking['title']; ?></h2>
+                                <h2 class="text-xl font-bold mb-1"><?php echo htmlspecialchars($booking['title']); ?></h2>
                                 <div class="flex space-x-2">
                                     <span class="status-badge <?php echo $status_color; ?>">
                                         <?php echo $booking['booking_status']; ?>
@@ -730,10 +673,10 @@ function generateQRData($booking, $seats_text) {
                             <?php endif; ?>
                             
                             <div class="text-sm text-slate-400 mb-2">
-                                <span><?php echo $booking['language']; ?></span>
+                                <span><?php echo htmlspecialchars($booking['language']); ?></span>
                                 <?php if (!empty($booking['genre'])): ?>
                                 <span class="mx-2">•</span>
-                                <span><?php echo $booking['genre']; ?></span>
+                                <span><?php echo htmlspecialchars($booking['genre']); ?></span>
                                 <?php endif; ?>
                                 <?php if (!empty($booking['duration'])): ?>
                                 <span class="mx-2">•</span>
@@ -759,7 +702,7 @@ function generateQRData($booking, $seats_text) {
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-indigo-400 mr-1" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
                                 </svg>
-                                <span class="text-white"><?php echo $booking['theater_name']; ?><?php echo !empty($booking['location']) ? ', ' . $booking['location'] : ''; ?></span>
+                                <span class="text-white"><?php echo htmlspecialchars($booking['theater_name']); ?><?php echo !empty($booking['location']) ? ', ' . htmlspecialchars($booking['location']) : ''; ?></span>
                             </div>
                             
                             <div class="text-sm flex items-center">
@@ -773,12 +716,11 @@ function generateQRData($booking, $seats_text) {
                     
                     <div class="divider"></div>
                     
-                    <!-- Booking details section -->
                     <div class="px-4 md:px-6 pb-4 md:pb-6">
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
                             <div class="ticket-info">
                                 <div class="text-xs text-slate-400">Seats</div>
-                                <div class="text-sm font-medium text-white"><?php echo !empty($seats_text) ? $seats_text : 'No seats found'; ?></div>
+                                <div class="text-sm font-medium text-white"><?php echo $seats_text; ?></div>
                             </div>
                             <div class="ticket-info">
                                 <div class="text-xs text-slate-400">Amount Paid</div>
@@ -786,9 +728,7 @@ function generateQRData($booking, $seats_text) {
                             </div>
                         </div>
                         
-                        <!-- QR Code & Actions -->
                         <div class="flex flex-col sm:flex-row items-center gap-3">
-                            <!-- QR Code -->
                             <div class="qr-container">
                                 <div id="qrcode-<?php echo $booking['booking_id']; ?>"></div>
                             </div>
@@ -833,7 +773,6 @@ function generateQRData($booking, $seats_text) {
                     </div>
                 </div>
                 
-                <!-- Ticket Modal -->
                 <div id="ticketModal-<?php echo $booking['booking_id']; ?>" class="modal">
                     <div class="modal-content">
                         <div class="flex justify-between items-center mb-4">
@@ -849,7 +788,7 @@ function generateQRData($booking, $seats_text) {
                             <div class="hidden print-logo">CineBook Ticket</div>
                             
                             <div class="flex justify-between items-start mb-4">
-                                <h4 class="text-lg font-bold print-dark"><?php echo $booking['title']; ?></h4>
+                                <h4 class="text-lg font-bold print-dark"><?php echo htmlspecialchars($booking['title']); ?></h4>
                                 <span class="status-badge <?php echo $status_color; ?> print-dark">
                                     <?php echo $booking['booking_status']; ?>
                                 </span>
@@ -862,11 +801,11 @@ function generateQRData($booking, $seats_text) {
                                 </div>
                                 <div>
                                     <p class="text-xs text-slate-400 print-dark">Theater</p>
-                                    <p class="text-sm font-medium print-dark"><?php echo $booking['theater_name']; ?></p>
+                                    <p class="text-sm font-medium print-dark"><?php echo htmlspecialchars($booking['theater_name']); ?></p>
                                 </div>
                                 <div>
                                     <p class="text-xs text-slate-400 print-dark">Seats</p>
-                                    <p class="text-sm font-medium print-dark"><?php echo !empty($seats_text) ? $seats_text : 'No seats found'; ?></p>
+                                    <p class="text-sm font-medium print-dark"><?php echo $seats_text; ?></p>
                                 </div>
                                 <div>
                                     <p class="text-xs text-slate-400 print-dark">Booking ID</p>
@@ -906,7 +845,6 @@ function generateQRData($booking, $seats_text) {
                 <?php endforeach; ?>
             </div>
         <?php else: ?>
-            <!-- No bookings message -->
             <div class="empty-state flex flex-col items-center justify-center py-16">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-slate-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2V7a2 2 0 00-2-2H5z" />
@@ -926,11 +864,9 @@ function generateQRData($booking, $seats_text) {
         <?php endif; ?>
     </div>
     
-    <!-- Include footer -->
     <?php include '../includes/footer.php'; ?>
     
     <script>
-        // Show alert on page load
         document.addEventListener('DOMContentLoaded', function() {
             const alert = document.getElementById('alert');
             if (alert) {
@@ -950,8 +886,7 @@ function generateQRData($booking, $seats_text) {
                 }, 5000);
             }
             
-            // Generate QR codes for each booking
-            <?php foreach ($bookings as $booking): 
+            <?php foreach ($bookings as $booking):
                 $seats = getBookingSeats($conn, $booking['booking_id'], $booking['show_id']);
                 $qr_data = generateQRData($booking, implode(', ', $seats));
             ?>
@@ -959,19 +894,15 @@ function generateQRData($booking, $seats_text) {
                 generateQRCode('ticket-<?php echo $booking['booking_id']; ?>', <?php echo json_encode($qr_data); ?>, 150);
             <?php endforeach; ?>
             
-            // Filter tabs functionality
             const filterTabs = document.querySelectorAll('.filter-tab');
             filterTabs.forEach(tab => {
                 tab.addEventListener('click', function() {
-                    // Remove active class from all tabs
                     filterTabs.forEach(t => {
                         t.classList.remove('active');
                     });
                     
-                    // Add active class to clicked tab
                     this.classList.add('active');
                     
-                    // Filter bookings
                     const filter = this.getAttribute('data-filter');
                     const bookingItems = document.querySelectorAll('.booking-item');
                     
@@ -1008,9 +939,8 @@ function generateQRData($booking, $seats_text) {
                 `;
             } catch (e) {
                 console.error("QR Code generation error:", e);
-                // Fallback for QR code generation
-                document.getElementById('qrcode-' + elementId).innerHTML = 
-                    '<div class="p-2 text-center text-xs text-gray-600">' + 
+                document.getElementById('qrcode-' + elementId).innerHTML =
+                    '<div class="p-2 text-center text-xs text-gray-600">' +
                     data.substring(0, 20) + '...</div>';
             }
         }
@@ -1029,7 +959,6 @@ function generateQRData($booking, $seats_text) {
             window.print();
         }
         
-        // Close modals when clicking outside
         window.onclick = function(event) {
             if (event.target.classList.contains('modal')) {
                 const modals = document.querySelectorAll('.modal');
@@ -1039,7 +968,6 @@ function generateQRData($booking, $seats_text) {
             }
         };
         
-        // Close modals with escape key
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
                 const modals = document.querySelectorAll('.modal');
@@ -1051,4 +979,3 @@ function generateQRData($booking, $seats_text) {
     </script>
 </body>
 </html>
-

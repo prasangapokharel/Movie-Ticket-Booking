@@ -12,35 +12,38 @@ if (!$show_id) {
 }
 
 try {
-    // Clean up expired temporary selections
-    $cleanup = $conn->prepare("DELETE FROM temp_seat_selections WHERE expires_at < NOW()");
-    $cleanup->execute();
+    // Clean up expired temp selections first
+    $cleanup_stmt = $conn->prepare("
+        DELETE FROM temp_seat_selections 
+        WHERE expires_at < NOW()
+    ");
+    $cleanup_stmt->execute();
     
     // Get all seat statuses for this show
-    $seats = [];
-    
-    // Get booked/reserved seats
-    $booked_query = $conn->prepare("
-        SELECT seat_number, 'booked' as status 
+    $seats_query = $conn->prepare("
+        SELECT 
+            seat_number,
+            CASE 
+                WHEN status IN ('booked', 'reserved') THEN status
+                ELSE 'available'
+            END as status
         FROM seats 
-        WHERE show_id = ? AND status IN ('booked', 'reserved')
-    ");
-    $booked_query->execute([$show_id]);
-    $booked_seats = $booked_query->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Get temporarily selected seats
-    $temp_query = $conn->prepare("
-        SELECT seat_number, 'temp_selected' as status 
+        WHERE show_id = ?
+        
+        UNION
+        
+        SELECT 
+            seat_number,
+            'temp_selected' as status
         FROM temp_seat_selections 
         WHERE show_id = ? AND expires_at > NOW()
+        
+        ORDER BY seat_number
     ");
-    $temp_query->execute([$show_id]);
-    $temp_seats = $temp_query->fetchAll(PDO::FETCH_ASSOC);
+    $seats_query->execute([$show_id, $show_id]);
+    $seats = $seats_query->fetchAll(PDO::FETCH_ASSOC);
     
-    // Combine results
-    $all_seats = array_merge($booked_seats, $temp_seats);
-    
-    echo json_encode($all_seats);
+    echo json_encode($seats);
     
 } catch (PDOException $e) {
     echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);

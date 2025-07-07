@@ -1,6 +1,6 @@
 <?php
-session_start();
 include '../database/config.php';
+session_start();
 
 header('Content-Type: application/json');
 
@@ -21,53 +21,47 @@ if (!$show_id || !$seat_number || !$action) {
 }
 
 try {
-    // Clean up expired selections first
-    $cleanup = $conn->prepare("DELETE FROM temp_seat_selections WHERE expires_at < NOW()");
-    $cleanup->execute();
-
+    // Verify user exists
+    $user_check = $conn->prepare("SELECT user_id FROM users WHERE user_id = ?");
+    $user_check->execute([$user_id]);
+    if (!$user_check->fetch()) {
+        echo json_encode(['success' => false, 'error' => 'Invalid user session']);
+        exit;
+    }
+    
+    // Verify show exists
+    $show_check = $conn->prepare("SELECT show_id FROM shows WHERE show_id = ?");
+    $show_check->execute([$show_id]);
+    if (!$show_check->fetch()) {
+        echo json_encode(['success' => false, 'error' => 'Invalid show']);
+        exit;
+    }
+    
     if ($action === 'select') {
-        // Check if seat is already booked
-        $check_booked = $conn->prepare("SELECT COUNT(*) FROM seats WHERE show_id = ? AND seat_number = ? AND status = 'booked'");
-        $check_booked->execute([$show_id, $seat_number]);
+        // Add temporary seat selection with 5-minute expiry
+        $expires_at = date('Y-m-d H:i:s', time() + (5 * 60));
         
-        if ($check_booked->fetchColumn() > 0) {
-            echo json_encode(['success' => false, 'message' => 'Seat is already booked']);
-            exit;
-        }
-
-        // Check if seat is temporarily selected by another user
-        $check_temp = $conn->prepare("
-            SELECT COUNT(*) FROM temp_seat_selections 
-            WHERE show_id = ? AND seat_number = ? AND user_id != ? AND expires_at > NOW()
-        ");
-        $check_temp->execute([$show_id, $seat_number, $user_id]);
-        
-        if ($check_temp->fetchColumn() > 0) {
-            echo json_encode(['success' => false, 'message' => 'Seat is temporarily selected by another user']);
-            exit;
-        }
-
-        // Add or update temporary seat selection with 10-minute expiration
-        $stmt = $conn->prepare("
-            INSERT INTO temp_seat_selections (user_id, show_id, seat_number, expires_at)
-            VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))
+        $insert_temp = $conn->prepare("
+            INSERT INTO temp_seat_selections (user_id, show_id, seat_number, expires_at, timestamp)
+            VALUES (?, ?, ?, ?, NOW())
             ON DUPLICATE KEY UPDATE 
-            expires_at = DATE_ADD(NOW(), INTERVAL 10 MINUTE)
+            expires_at = ?, timestamp = NOW()
         ");
-        $stmt->execute([$user_id, $show_id, $seat_number]);
+        $insert_temp->execute([$user_id, $show_id, $seat_number, $expires_at, $expires_at]);
         
     } elseif ($action === 'deselect') {
         // Remove temporary seat selection
-        $stmt = $conn->prepare("
+        $delete_temp = $conn->prepare("
             DELETE FROM temp_seat_selections 
             WHERE user_id = ? AND show_id = ? AND seat_number = ?
         ");
-        $stmt->execute([$user_id, $show_id, $seat_number]);
+        $delete_temp->execute([$user_id, $show_id, $seat_number]);
     }
     
     echo json_encode(['success' => true]);
     
 } catch (PDOException $e) {
+    error_log("Temp seat update error: " . $e->getMessage());
     echo json_encode(['success' => false, 'error' => 'Database error: ' . $e->getMessage()]);
 }
 ?>
